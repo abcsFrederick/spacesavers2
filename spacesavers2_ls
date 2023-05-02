@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+import sys
+
+from src.VersionCheck import version_check
+version_check()
+
+# import required modules
+import glob
+import os
+from src.FileDetails import FileDetails
+from multiprocessing import Pool
+import argparse
+
+def task(f):
+    if not os.path.isfile(f): 
+        return ""
+    else:
+        fd = FileDetails()
+        fd.initialize(f,
+                      buffersize = args.buffersize,
+                      thresholdsize = args.ignoreheadersize,
+                      tb = args.buffersize,
+                      sed = sed,
+                      bottomhash = args.bottomhash)
+        return "%s"%(fd)
+
+def main():
+    parser = argparse.ArgumentParser(description='spacesavers2_ls get per file info.')
+    parser.add_argument("-f","--folder",dest="folder",required=True,type=str,
+    help="spacesavers2_ls will be run on all files in this folder and its subfolders")
+    parser.add_argument("-p","--threads",dest="threads",required=False,type=int, default=4,
+    help="number of threads to be used")
+    parser.add_argument('-b',"--buffersize",dest="buffersize",required=False,type=int,default=128*1024,
+        help="buffersize for xhash creation")
+    parser.add_argument('-i',"--ignoreheadersize",dest="ignoreheadersize",required=False,type=int,default=1024*1024*1024,
+        help="this sized header of the file is ignored before extracting buffer of buffersize for xhash creation (only for special extension files)")
+    parser.add_argument('-s',"--se",dest="se",required=False,type=str,default='bam,bai,bigwig,bw,csi',
+        help="comma separated list of special extentions") 
+    parser.add_argument('-e',"--bottomhash",dest="bottomhash",required=False,action=argparse.BooleanOptionalAction,
+        help="separately calculated second hash for the bottom/end of the file.") 
+
+    global args
+    args = parser.parse_args()
+
+
+    global sed
+    sed = dict()
+    for s in args.se.split(","):
+        sed[s] = 1
+
+    folder = args.folder
+    files = glob.iglob(os.path.join(folder, "**/*"), recursive=True, include_hidden=True)
+
+    with Pool(processes=args.threads) as pool:
+        for result in pool.imap_unordered(task,files):
+            if not result=="": print(result)
+
+if __name__ == '__main__': main()

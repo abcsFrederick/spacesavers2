@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+import sys
+
+from src.VersionCheck import version_check
+version_check()
+
+from src.FileDetails import FileDetails
+
+import argparse
+
+# Swap function
+def swapPositions(list, pos1, pos2):
+    list[pos1], list[pos2] = list[pos2], list[pos1]
+    return list
+
+class dfUnit:
+    def __init__(self,hash):
+        self.hash   = hash  # typically hash_top + "#" + hash_bottom
+        self.flist  = []    # list of _ls files with the same has
+        self.size   = -1    # total disk space occupied by all duplicates ... total size of (nfiles-symlinks-hardlinks)
+        self.ndup   = -1    # files in flist with same size, but different inode (they already have the same hash)
+    
+    def compute(self): # 1. move oldest to the first position 2. find ndup 3. find size
+    # 1. move oldest to first position
+        nf = len(self.flist)
+        if nf != 1:
+            earliest_time = -1
+            earliest = -1
+            sizes = dict()
+            for i,j in enumerate(self.flist):
+                if not j.issyml:
+                    sizes[j.inode] = j.size
+                    if earliest_time == -1: 
+                        earliest_time = j.ctime
+                        earliest = i
+                    elif earliest_time > j.ctime:
+                        earliest_time = j.ctime
+                        earliest = i
+            if earliest > 0: self.flist = swapPositions(self.flist,0,earliest)
+            s = 0
+            for i,j in sizes.items():
+                s += j
+            self.size = s
+            self.ndup = len(sizes)
+        else:
+            if self.flist[0].issyml: 
+                self.size = 0
+                self.ndup = 0
+            else:
+                self.size = self.flist[0].size
+                self.ndup = 1
+    
+    def __str__(self):
+        return "{0} : {1} {2} {3}".format(self.hash, self.ndup, self.size,"##".join(map(lambda x:str(x),self.flist)))
+        
+
+
+
+def main():
+    parser = argparse.ArgumentParser(description='spacesavers2_finddup find duplicates')
+    parser.add_argument("-f","--lsout",dest="lsout",required=True,type=argparse.FileType('r'),default=sys.stdin,
+    help="spacesavers2_ls output from STDIN or from file")
+
+    global args
+    args = parser.parse_args()
+
+    hashhash = dict()
+    for l in args.lsout:
+        fd = FileDetails()
+        fd.set(l)
+        hash = fd.xhash_top + "#" + fd.xhash_bottom
+        if not hash in hashhash: hashhash[hash] = dfUnit(hash)
+        hashhash[hash].flist.append(fd)
+    
+    for h in hashhash.keys():
+        # print(h,":","##".join(map(lambda x:str(x),v)))
+        hashhash[h].compute()
+        print(hashhash[h])
+
+
+if __name__ == '__main__': main()
