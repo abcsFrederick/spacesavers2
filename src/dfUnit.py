@@ -89,5 +89,5 @@ class dfUnit:
         # print(self.size)
         # print("##".join(map(lambda x:str(x),self.flist)))
         # exit()
-        return "{0} : {1} {2} {3}".format(self.hash, self.ndup, self.size,"##".join(map(lambda x:str(x),self.flist)))
+        return "{0} : {1} {2} {3}".format(self.hash, self.ndup, self.ndup * self.size,"##".join(map(lambda x:str(x),self.flist)))
         
