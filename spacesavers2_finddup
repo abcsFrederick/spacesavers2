@@ -118,9 +118,7 @@ def main():
         if args.createpickle or args.peruser:
             with open(pkl,'wb') as outpkl:
                 pickle.dump([hashhash,users,paths],outpkl)
-    
-    print(users)
-    # exit()
+
     
     if not args.uid in users:
         exit("ERROR: {} is not a valid user!".format(str(args.uid)))
@@ -192,7 +190,7 @@ def main():
                 if args.duplicatesonly: cmd += " -z "
                 parallelfile.write("{}\n".format(cmd))
         parallelcmd = "parallel -j "+str(PARALLEL_J)+" -a "+parallelfilename
-        print(parallelcmd)
+        # print(parallelcmd)
         subprocess.run(shlex.split(parallelcmd,posix=True),shell=False,text=True)
 
 if __name__ == '__main__': main()
