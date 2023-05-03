@@ -1,4 +1,5 @@
 import os
+import time
 
 try:
     import xxhash
@@ -9,11 +10,16 @@ THRESHOLDSIZE = 1024 * 1024 * 1024
 BUFFERSIZE  = 128 * 1024
 TB = THRESHOLDSIZE+BUFFERSIZE
 SEED = 20230502
+MINDEPTH = 3
 
 special_extensions=["bam","bai","bigwig","bw","csi"]
 SED = dict()                                # special extensions dict
 for se in special_extensions:
     SED[se]=1
+
+def convert_time_to_age(t):
+    currenttime=int(time.time())
+    return int((currenttime - t)/86400)+1 
 
 class FileDetails:
     def __init__(self):
@@ -40,9 +46,9 @@ class FileDetails:
         self.dev 	= st.st_dev             # Device id
         self.inode 	= st.st_ino             # Inode
         self.nlink 	= st.st_nlink		    # number of hardlinks
-        self.atime	= st.st_atime           # access time
-        self.mtime	= st.st_mtime           # modification time
-        self.ctime	= st.st_ctime           # creation time
+        self.atime	= convert_time_to_age(st.st_atime)           # access time
+        self.mtime	= convert_time_to_age(st.st_mtime)           # modification time
+        self.ctime	= convert_time_to_age(st.st_ctime)           # creation time
         self.uid	= st.st_uid             # user id
         self.gid	= st.st_gid             # group id
         if ext in sed:
@@ -77,7 +83,7 @@ class FileDetails:
 
     def set(self,ls_line):
         ls_line         = ls_line.strip().strip(";").split(";")
-        self.apath      = ls_line[0]
+        self.apath      = os.path.abspath(ls_line[0])
         self.issyml     = ls_line[1] == 'True'
         self.size       = int(ls_line[2])
         self.dev        = int(ls_line[3])
@@ -106,3 +112,18 @@ class FileDetails:
         return_str += "%s;"%(self.xhash_top)
         return_str += "%s;"%(self.xhash_bottom)
         return return_str
+
+    def get_path_at_depth(self,depth):
+        abspath = str(self.apath).strip("/").split("/")
+        maxd = len(abspath) - 1
+        if depth > maxd:
+            depth = maxd
+        return "/"+"/".join(abspath[:depth])
+
+    def get_paths_at_all_depths(self,maxdepth):
+        paths = set()
+        for i in range(MINDEPTH,maxdepth+1): 
+            paths.add(self.get_path_at_depth(i))
+        return paths
+
+

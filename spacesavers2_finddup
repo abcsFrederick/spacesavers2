@@ -1,81 +1,136 @@
 #!/usr/bin/env python3
 import sys
+import os
+import copy
+import gzip
+
+MINDEPTH = 3
+QUOTA_TB = 20
 
 from src.VersionCheck import version_check
 version_check()
 
 from src.FileDetails import FileDetails
+from src.dfUnit import dfUnit
+from src.Summary import Summary
 
 import argparse
 
-# Swap function
-def swapPositions(list, pos1, pos2):
-    list[pos1], list[pos2] = list[pos2], list[pos1]
-    return list
+def get_path_at_depth(path,depth):
+    abspath = path.strip("/").split("/")
+    maxd = len(abspath)
+    if depth > maxd:
+        depth = maxd
+    return "/"+"/".join(abspath[:depth])
 
-class dfUnit:
-    def __init__(self,hash):
-        self.hash   = hash  # typically hash_top + "#" + hash_bottom
-        self.flist  = []    # list of _ls files with the same has
-        self.size   = -1    # total disk space occupied by all duplicates ... total size of (nfiles-symlinks-hardlinks)
-        self.ndup   = -1    # files in flist with same size, but different inode (they already have the same hash)
-    
-    def compute(self): # 1. move oldest to the first position 2. find ndup 3. find size
-    # 1. move oldest to first position
-        nf = len(self.flist)
-        if nf != 1:
-            earliest_time = -1
-            earliest = -1
-            sizes = dict()
-            for i,j in enumerate(self.flist):
-                if not j.issyml:
-                    sizes[j.inode] = j.size
-                    if earliest_time == -1: 
-                        earliest_time = j.ctime
-                        earliest = i
-                    elif earliest_time > j.ctime:
-                        earliest_time = j.ctime
-                        earliest = i
-            if earliest > 0: self.flist = swapPositions(self.flist,0,earliest)
-            s = 0
-            for i,j in sizes.items():
-                s += j
-            self.size = s
-            self.ndup = len(sizes)
-        else:
-            if self.flist[0].issyml: 
-                self.size = 0
-                self.ndup = 0
-            else:
-                self.size = self.flist[0].size
-                self.ndup = 1
-    
-    def __str__(self):
-        return "{0} : {1} {2} {3}".format(self.hash, self.ndup, self.size,"##".join(map(lambda x:str(x),self.flist)))
-        
+def get_paths_at_all_depths(path,maxdepth):
+    paths = set()
+    for i in range(MINDEPTH,maxdepth+1): 
+        paths.add(get_path_at_depth(path,i))
+    return paths
 
+  
+
+
+
+# def _append_aflist(aflist,flist):
+#     for f in flist:
+#         fp = f.get_path_at_depth
 
 
 def main():
     parser = argparse.ArgumentParser(description='spacesavers2_finddup find duplicates')
-    parser.add_argument("-f","--lsout",dest="lsout",required=True,type=argparse.FileType('r'),default=sys.stdin,
-    help="spacesavers2_ls output from STDIN or from file")
+    parser.add_argument("-f","--lsout",dest="lsout",required=True,type=str,default=sys.stdin,
+        help="spacesavers2_ls output from STDIN or from file")
+    parser.add_argument("-u","--uid",dest="uid",required=False,type=int,default=0,
+        help="user id or 0 for all users ... if 0 is provided the {sys.argv[1]} is run for all users")
+    parser.add_argument("-d","--depth",dest="depth",required=False,type=int,default=3,
+        help="folder max. depth upto which reports are aggregated")
+    parser.add_argument("-o","--outdir",dest="outdir",required=False,type=str,default=os.getcwd(),
+        help="output folder")
+    parser.add_argument("-q","--quota",dest="quota",required=False,type=float,default=200.0,
+        help="total quota of the mount eg. 200 TB for /data/CCBR")
 
     global args
     args = parser.parse_args()
-
-    hashhash = dict()
-    for l in args.lsout:
-        fd = FileDetails()
-        fd.set(l)
-        hash = fd.xhash_top + "#" + fd.xhash_bottom
-        if not hash in hashhash: hashhash[hash] = dfUnit(hash)
-        hashhash[hash].flist.append(fd)
+    quota = args.quota * 1024 * 1024 * 1024 * 1024
     
-    for h in hashhash.keys():
-        # print(h,":","##".join(map(lambda x:str(x),v)))
-        hashhash[h].compute()
-        print(hashhash[h])
+    if args.depth < 3: args.depth = 3
+    
+    hh = dict()
+    users = set()       # list of all users found
+    users.add(0)        # 0 == all users
+    paths = set()       # aggregate folder list .. say at depth 3 .. includes depth 2 and 1
+    with open(args.lsout) as lsout:
+        for l in lsout:
+            fd = FileDetails()
+            fd.set(l)
+            if fd.issyml: continue
+            users.add(fd.uid)
+            paths.add(fd.get_path_at_depth(args.depth))
+            hash = fd.xhash_top + "#" + fd.xhash_bottom
+            if not hash in hh: hh[hash] = dfUnit(hash)
+            hh[hash].flist.append(fd)
+    
+    allpaths = set()
+    if args.depth == 3: 
+        allpaths = copy.deepcopy(paths)
+    else:
+        for p in paths:
+            allpaths = allpaths.union(get_paths_at_all_depths(p,args.depth))
+    extrapaths = list(allpaths - paths)
+    extrapaths.sort()
+    paths = list(paths)
+    paths.sort()
+    
+    peruser_perfolder_summaries = dict()
+    for u in users:
+        peruser_perfolder_summaries[u] = dict()
+        for p in allpaths:
+            peruser_perfolder_summaries[u][p] = Summary(p)
+
+    for u in users:
+        hashhash = copy.deepcopy(hh)
+        with gzip.open(os.path.join(os.path.abspath(args.outdir),str(u)+".files.gz"),'wt',compresslevel=9) as user_output:
+
+            hashhashsplits = dict()
+            for h in hashhash.keys():
+                hashhash[h].compute(args.uid,hashhashsplits)
+                if hashhash[h].ndup != 0:
+                    for p in paths:
+                        for f in hashhash[h].flist:
+                            if f.apath.startswith(p):
+                                if hashhash[h].oinode != -1 and hashhash[h].oinode != f.inode: #its a duplicate
+                                    peruser_perfolder_summaries[u][p].dup_Bytes.append(f.size)
+                                    peruser_perfolder_summaries[u][p].dup_ages.append(f.mtime)
+                                else:
+                                    peruser_perfolder_summaries[u][p].non_dup_Bytes.append(f.size)
+                                    peruser_perfolder_summaries[u][p].non_dup_ages.append(f.mtime)
+                    user_output.write(f"{hashhash[h]}\n")
+
+            hashhashsplitsdummy = dict()
+            for h in hashhashsplits.keys():
+                hashhashsplits[h].compute(args.uid,hashhashsplitsdummy)
+                if hashhashsplits[h].ndup != 0:
+                    for p in paths:
+                        for f in hashhashsplits[h].flist:
+                            if f.apath.startswith(p):
+                                if hashhashsplits[h].oinode != -1 and hashhashsplits[h].oinode != f.inode: #its a duplicate
+                                    peruser_perfolder_summaries[u][p].dup_Bytes.append(f.size)
+                                    peruser_perfolder_summaries[u][p].dup_ages.append(f.mtime)
+                                else:
+                                    peruser_perfolder_summaries[u][p].non_dup_Bytes.append(f.size)
+                                    peruser_perfolder_summaries[u][p].non_dup_ages.append(f.mtime)
+                    user_output.write(f"{hashhashsplits[h]}\n")
+        del hashhash
+        del hashhashsplits
+        del hashhashsplitsdummy
+        user_output.close()
+        with open(os.path.join(os.path.abspath(args.outdir),str(u)+".summary.txt"),'w') as user_summary:
+            for p in paths:
+                peruser_perfolder_summaries[u][p].update_scores(quota)
+                user_summary.write(f"{peruser_perfolder_summaries[u][p]}\n")
+        user_summary.close()
 
 
 if __name__ == '__main__': main()
