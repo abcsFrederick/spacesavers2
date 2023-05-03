@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+####################################################################################
+# spacesavers2 end-to-end wrapper script
+####################################################################################
+set -e -o pipefail
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+# ncpus=`nproc`
+
+ARGPARSE_DESCRIPTION="End-to-end run of spacesavers2"
+source ${SCRIPT_DIR}/resources/argparse.bash || exit 1
+argparse "$@" <<EOF || exit 1
+parser.add_argument('-i','--infolder',required=True, help='Folder to run spacesavers_ls on.')
+parser.add_argument('-p','--threads',required=False, help='number of threads to use', default=4)
+parser.add_argument('-q','--quota',required=False, help='total size of the volume (default = 200 for /data/CCBR)', default=200)
+parser.add_argument('-o','--outfolder',required=True, help='Folder where all spacesavers_finddup output files will be saved')
+EOF
+
+# ensure that python 3.11, python library xxhash and gnuparallel are in path
+# this is currently biowulf specific but can be replaced to your case
+. "/data/CCBR_Pipeliner/db/PipeDB/Conda/etc/profile.d/conda.sh"
+conda activate py311
+export PATH=${SCRIPT_DIR}:$PATH
+
+outfile=$(echo "${INFOLDER}.ls"|sed "s/\//_/g")
+
+# run spacesavers2_ls
+spacesavers2_ls -f $INFOLDER -p $THREADS -e > ${OUTFOLDER}/${outfile}
+
+# run spacesavers2_finddup
+spacesavers2_finddup -f ${OUTFOLDER}/${outfile} -o ${OUTFOLDER} -q $QUOTA -z -p
