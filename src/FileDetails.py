@@ -82,7 +82,7 @@ class FileDetails:
                 self.xhash_bottom = self.xhash_top
 
     def set(self,ls_line):
-        ls_line         = ls_line.strip().strip(";").split(";")
+        ls_line         = ls_line.strip().strip(";").replace("\"","").split(";")
         self.xhash_bottom   = ls_line.pop(-1)
         self.xhash_top      = ls_line.pop(-1)
         self.gid        = int(ls_line.pop(-1))
@@ -128,4 +128,12 @@ class FileDetails:
             paths.add(self.get_path_at_depth(i))
         return paths
 
+    def get_depth(self):
+        abspath = str(self.apath).replace("\"","").strip("/").split("/")
+        return len(abspath) - 1
+    
+    def get_path(self):
+        abspath = str(self.apath).replace("\"","").strip("/").split("/")
+        abspath.pop(-1)
+        return "/"+"/".join(abspath)
 
