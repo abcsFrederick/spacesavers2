@@ -3,11 +3,13 @@ import sys
 import os
 import copy
 import gzip
+import textwrap
 
 MINDEPTH = 3
 QUOTA_TB = 20
 
 from src.VersionCheck import version_check
+from src.VersionCheck import __version__
 version_check()
 
 from src.FileDetails import FileDetails
@@ -39,7 +41,14 @@ def get_paths_at_all_depths(path,maxdepth):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='spacesavers2_finddup find duplicates')
+    elog=textwrap.dedent("""\
+    Version: 
+        {}
+    Example: 
+        % spacesavers2_finddup -f /output/from/spacesavers2_ls -o /path/to/output/folder -d 7 -q 10
+        """.format(__version__)) 
+    parser = argparse.ArgumentParser(description="spacesavers2_finddup: find duplicates",
+                                     epilog=elog)
     parser.add_argument("-f","--lsout",dest="lsout",required=True,type=str,default=sys.stdin,
         help="spacesavers2_ls output from STDIN or from file")
     parser.add_argument("-u","--uid",dest="uid",required=False,type=int,default=0,
