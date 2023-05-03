@@ -83,22 +83,24 @@ class FileDetails:
 
     def set(self,ls_line):
         ls_line         = ls_line.strip().strip(";").split(";")
-        self.apath      = os.path.abspath(ls_line[0])
-        self.issyml     = ls_line[1] == 'True'
-        self.size       = int(ls_line[2])
-        self.dev        = int(ls_line[3])
-        self.inode      = int(ls_line[4])
-        self.nlink      = int(ls_line[5])
-        self.atime      = int(ls_line[6])
-        self.mtime      = int(ls_line[7]) 
-        self.ctime      = int(ls_line[8])
-        self.uid        = int(ls_line[9])
-        self.gid        = int(ls_line[10])
-        self.xhash_top      = ls_line[11] 
-        self.xhash_bottom   = ls_line[12]           
+        self.xhash_bottom   = ls_line.pop(-1)
+        self.xhash_top      = ls_line.pop(-1)
+        self.gid        = int(ls_line.pop(-1))
+        self.uid        = int(ls_line.pop(-1))
+        self.ctime      = int(ls_line.pop(-1))
+        self.mtime      = int(ls_line.pop(-1)) 
+        self.atime      = int(ls_line.pop(-1))
+        self.nlink      = int(ls_line.pop(-1))
+        self.inode      = int(ls_line.pop(-1))
+        self.dev        = int(ls_line.pop(-1))
+        self.size       = int(ls_line.pop(-1))
+        issyml = ls_line.pop(-1)
+        self.issyml     = issyml == 'True'
+        self.apath      = os.path.abspath(";".join(ls_line))
+                    
     
     def __str__(self):
-        return_str = "%s;"%(self.apath)
+        return_str = "\"%s\";"%(self.apath)
         return_str += "%s;"%(self.issyml)
         return_str += "%d;"%(self.size)
         return_str += "%d;"%(self.dev)
