@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 import sys
 import os
-import copy
 import gzip
 import textwrap
+import pickle
+import subprocess
+import shlex
 
 MINDEPTH = 3
 QUOTA_TB = 20
+PARALLEL_J = 10
 
 from src.VersionCheck import version_check
 from src.VersionCheck import __version__
@@ -15,29 +18,18 @@ version_check()
 from src.FileDetails import FileDetails
 from src.dfUnit import dfUnit
 from src.Summary import Summary
+from src.utils import *
 
 import argparse
 
-def get_path_at_depth(path,depth):
-    abspath = path.strip("/").split("/")
-    maxd = len(abspath)
-    if depth > maxd:
-        depth = maxd
-    return "/"+"/".join(abspath[:depth])
+def get_depth(path):
+    abspath = str(path).strip("/").split("/")
+    return len(abspath) - 1
 
-def get_paths_at_all_depths(path,maxdepth):
-    paths = set()
-    for i in range(MINDEPTH,maxdepth+1): 
-        paths.add(get_path_at_depth(path,i))
-    return paths
-
-  
-
-
-
-# def _append_aflist(aflist,flist):
-#     for f in flist:
-#         fp = f.get_path_at_depth
+def get_username(uid):
+    if uid == 0: return "allusers"
+    x = subprocess.run(shlex.split("id -nu {}".format(uid)),capture_output=True,shell=False,text=True)
+    return x.stdout.strip()
 
 
 def main():
@@ -53,103 +45,152 @@ def main():
         help="spacesavers2_ls output from STDIN or from file")
     parser.add_argument("-u","--uid",dest="uid",required=False,type=int,default=0,
         help="user id or 0 for all users ... if 0 is provided the {sys.argv[1]} is run for all users")
-    parser.add_argument("-d","--depth",dest="depth",required=False,type=int,default=3,
+    parser.add_argument("-d","--maxdepth",dest="maxdepth",required=False,type=int,default=10,
         help="folder max. depth upto which reports are aggregated")
     parser.add_argument("-o","--outdir",dest="outdir",required=False,type=str,default=os.getcwd(),
         help="output folder")
     parser.add_argument("-q","--quota",dest="quota",required=False,type=float,default=200.0,
         help="total quota of the mount eg. 200 TB for /data/CCBR")
     parser.add_argument('-z',"--duplicatesonly",dest="duplicatesonly",required=False,action=argparse.BooleanOptionalAction,
-        help="Print only duplicates to per user output file.") 
-
+        help="Print only duplicates to per user output file.")
+    parser.add_argument('-p',"--peruser",dest="peruser",required=False,action=argparse.BooleanOptionalAction,
+        help="By default it ignores userid and runs all at once. In addition, this option will run on per-user basis using gnuparallel")
+    # parser.add_argument("-t","--tmpdir",dest="tmpdir",required=False,type=str,default=os.getcwd(),
+    #     help="temp folder to save intermediate files like the pickle")
+    parser.add_argument("-c","--createpickle",dest="createpickle",required=False,type=str,
+        help="create a pickle file for future use")
+    parser.add_argument("-k","--readpickle",dest="readpickle",required=False,type=str,
+        help="use this pickle file instead of re-reading file at -f")
+        
     global args
     args = parser.parse_args()
     quota = args.quota * 1024 * 1024 * 1024 * 1024
+
+    check_writeable_folder(args.outdir)
+    # check_writeable_folder(args.tmpdir)
+
+    if args.peruser: # check if parallel is in path
+        path_to_parallel = which("parallel")
+        if path_to_parallel == None:
+            exit("parallel is NOT in path!")
+        else:
+            print(f"Using parallel from here:{path_to_parallel}")
+        if args.uid != 0:
+            print("ERROR: -p option can only be used with -u = 0!")
+        if not args.createpickle: 
+            pkl = os.path.join(os.path.abspath(args.outdir),"pickle.pkl")
     
-    if args.depth < 3: args.depth = 3
+    if args.createpickle and args.readpickle:
+        exit("ERROR: pickle can either be created or read ... not both at the same time!")
     
-    hh = dict()
-    users = set()       # list of all users found
-    users.add(0)        # 0 == all users
-    paths = set()       # aggregate folder list .. say at depth 3 .. includes depth 2 and 1
-    with open(args.lsout) as lsout:
-        for l in lsout:
-            fd = FileDetails()
-            fd.set(l)
-            if fd.issyml: continue
-            users.add(fd.uid)
-            paths.add(fd.get_path_at_depth(args.depth))
-            hash = fd.xhash_top + "#" + fd.xhash_bottom
-            if not hash in hh: hh[hash] = dfUnit(hash)
-            hh[hash].flist.append(fd)
-    
-    allpaths = set()
-    if args.depth == 3: 
-        allpaths = copy.deepcopy(paths)
+    if args.createpickle:
+        if os.path.exists(args.createpickle): os.remove(args.createpickle)
+        pkl = args.createpickle
+
+    if args.readpickle:
+        if not os.path.exists(args.readpickle):
+            exit("ERROR: {} pickle does not exist!".format(args.readpickle))
+        elif not check_readable_file(args.readpickle):
+            exit("ERROR: {} pickle exists but cannot be read!".format(args.readpickle))
+        with open(args.readpickle, 'rb') as inpkl:
+            hashhash, users, paths = pickle.load(inpkl)
     else:
-        for p in paths:
-            allpaths = allpaths.union(get_paths_at_all_depths(p,args.depth))
-    extrapaths = list(allpaths - paths)
-    extrapaths.sort()
-    paths = list(paths)
-    paths.sort()
+        hashhash = dict()
+        users = set()       # list of all users found
+        users.add(0)        # 0 == all users
+        paths = set()       
+        with open(args.lsout) as lsout:
+            for l in lsout:
+                fd = FileDetails()
+                fd.set(l)
+                if fd.issyml: continue
+                users.add(fd.uid)
+                paths.add(fd.get_path())
+                hash = fd.xhash_top + "#" + fd.xhash_bottom
+                if not hash in hashhash: hashhash[hash] = dfUnit(hash)
+                hashhash[hash].flist.append(fd)
+        
+        paths = list(paths)
+        paths.sort()
+        paths = list(filter(lambda x:get_depth(x) <= args.maxdepth,paths))
+        users = list(users)
+
+        if args.createpickle or args.peruser:
+            with open(pkl,'wb') as outpkl:
+                pickle.dump([hashhash,users,paths],outpkl)
+
     
+    if not args.uid in users:
+        exit("ERROR: {} is not a valid user!".format(str(args.uid)))
+
     peruser_perfolder_summaries = dict()
-    for u in users:
-        peruser_perfolder_summaries[u] = dict()
-        for p in allpaths:
-            peruser_perfolder_summaries[u][p] = Summary(p)
+    for p in paths:
+        peruser_perfolder_summaries[p] = Summary(p)
 
-    for u in users:
-        hashhash = copy.deepcopy(hh)
-        with gzip.open(os.path.join(os.path.abspath(args.outdir),str(u)+".files.gz"),'wt',compresslevel=9) as user_output:
-
-            hashhashsplits = dict()
-            for h in hashhash.keys():
-                hashhash[h].compute(args.uid,hashhashsplits)
-                if hashhash[h].ndup != 0:
-                    for p in paths:
-                        for f in hashhash[h].flist:
-                            if f.apath.startswith(p):
-                                if hashhash[h].oinode != -1 and hashhash[h].oinode != f.inode: #its a duplicate
-                                    peruser_perfolder_summaries[u][p].dup_Bytes.append(f.size)
-                                    peruser_perfolder_summaries[u][p].dup_ages.append(f.mtime)
-                                else:
-                                    peruser_perfolder_summaries[u][p].non_dup_Bytes.append(f.size)
-                                    peruser_perfolder_summaries[u][p].non_dup_ages.append(f.mtime)
-                    if args.duplicatesonly:
-                        if hashhash[h].ndup > 1:
-                            user_output.write(f"{hashhash[h]}\n")
-                    else:
+    with gzip.open(os.path.join(os.path.abspath(args.outdir),get_username(args.uid)+".files.gz"),'wt') as user_output:
+        hashhashsplits = dict()
+        for h in hashhash.keys():
+            hashhash[h].compute(args.uid,hashhashsplits)
+            if hashhash[h].ndup != 0:
+                for p in paths:
+                    for f in hashhash[h].flist:
+                        if f.apath.startswith(p):
+                            if hashhash[h].oinode != -1 and hashhash[h].oinode != f.inode: #its a duplicate
+                                peruser_perfolder_summaries[p].dup_Bytes.append(f.size)
+                                peruser_perfolder_summaries[p].dup_ages.append(f.mtime)
+                            else:
+                                peruser_perfolder_summaries[p].non_dup_Bytes.append(f.size)
+                                peruser_perfolder_summaries[p].non_dup_ages.append(f.mtime)
+                if args.duplicatesonly:
+                    if hashhash[h].ndup > 1:
                         user_output.write(f"{hashhash[h]}\n")
+                else:
+                    user_output.write(f"{hashhash[h]}\n")
 
-            hashhashsplitsdummy = dict()
-            for h in hashhashsplits.keys():
-                hashhashsplits[h].compute(args.uid,hashhashsplitsdummy)
-                if hashhashsplits[h].ndup != 0:
-                    for p in paths:
-                        for f in hashhashsplits[h].flist:
-                            if f.apath.startswith(p):
-                                if hashhashsplits[h].oinode != -1 and hashhashsplits[h].oinode != f.inode: #its a duplicate
-                                    peruser_perfolder_summaries[u][p].dup_Bytes.append(f.size)
-                                    peruser_perfolder_summaries[u][p].dup_ages.append(f.mtime)
-                                else:
-                                    peruser_perfolder_summaries[u][p].non_dup_Bytes.append(f.size)
-                                    peruser_perfolder_summaries[u][p].non_dup_ages.append(f.mtime)
-                    if args.duplicatesonly:
-                        if hashhashsplits[h].ndup > 1:
-                            user_output.write(f"{hashhashsplits[h]}\n")
-                    else:
+        hashhashsplitsdummy = dict()
+        for h in hashhashsplits.keys():
+            hashhashsplits[h].compute(args.uid,hashhashsplitsdummy)
+            if hashhashsplits[h].ndup != 0:
+                for p in paths:
+                    for f in hashhashsplits[h].flist:
+                        if f.apath.startswith(p):
+                            if hashhashsplits[h].oinode != -1 and hashhashsplits[h].oinode != f.inode: #its a duplicate
+                                peruser_perfolder_summaries[p].dup_Bytes.append(f.size)
+                                peruser_perfolder_summaries[p].dup_ages.append(f.mtime)
+                            else:
+                                peruser_perfolder_summaries[p].non_dup_Bytes.append(f.size)
+                                peruser_perfolder_summaries[p].non_dup_ages.append(f.mtime)
+                if args.duplicatesonly:
+                    if hashhashsplits[h].ndup > 1:
                         user_output.write(f"{hashhashsplits[h]}\n")
-        del hashhash
-        del hashhashsplits
-        del hashhashsplitsdummy
-        # user_output.close()
-        with open(os.path.join(os.path.abspath(args.outdir),str(u)+".summary.txt"),'w') as user_summary:
-            for p in paths:
-                peruser_perfolder_summaries[u][p].update_scores(quota)
-                user_summary.write(f"{peruser_perfolder_summaries[u][p]}\n")
-        # user_summary.close()
+                else:
+                    user_output.write(f"{hashhashsplits[h]}\n")
+    del hashhash
+    del hashhashsplits
+    del hashhashsplitsdummy
+    # user_output.close()
+    with open(os.path.join(os.path.abspath(args.outdir),get_username(args.uid)+".summary.txt"),'w') as user_summary:
+        for p in paths:
+            peruser_perfolder_summaries[p].update_scores(quota)
+            user_summary.write(f"{peruser_perfolder_summaries[p]}\n")
+    # user_summary.close()
 
+    if args.peruser:
+        parallelfilename = os.path.join(os.path.abspath(args.outdir),"do_all_users")
+        with open(parallelfilename,'w') as parallelfile:
+            for u in users:
+                if u == 0: continue
+                cmd = __file__
+                cmd += " -f "+args.lsout
+                cmd += " -u "+str(u)
+                cmd += " -d "+str(args.maxdepth)
+                cmd += " -o "+args.outdir
+                cmd += " -q "+str(args.quota)
+                cmd += " -k "+pkl
+                if args.duplicatesonly: cmd += " -z "
+                parallelfile.write("{}\n".format(cmd))
+        parallelcmd = "parallel -j "+str(PARALLEL_J)+" -a "+parallelfilename
+        # print(parallelcmd)
+        subprocess.run(shlex.split(parallelcmd,posix=True),shell=False,text=True)
 
 if __name__ == '__main__': main()
