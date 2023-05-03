@@ -1,7 +1,7 @@
 import sys
 
 global __version__
-__version__ = 'v0.1'
+__version__ = 'v0.2'
 
 def version_check():
     # version check
