@@ -59,6 +59,8 @@ def main():
         help="output folder")
     parser.add_argument("-q","--quota",dest="quota",required=False,type=float,default=200.0,
         help="total quota of the mount eg. 200 TB for /data/CCBR")
+    parser.add_argument('-z',"--duplicatesonly",dest="duplicatesonly",required=False,action=argparse.BooleanOptionalAction,
+        help="Print only duplicates to per user output file.") 
 
     global args
     args = parser.parse_args()
@@ -115,7 +117,11 @@ def main():
                                 else:
                                     peruser_perfolder_summaries[u][p].non_dup_Bytes.append(f.size)
                                     peruser_perfolder_summaries[u][p].non_dup_ages.append(f.mtime)
-                    user_output.write(f"{hashhash[h]}\n")
+                    if args.duplicatesonly:
+                        if hashhash[h].ndup > 1:
+                            user_output.write(f"{hashhash[h]}\n")
+                    else:
+                        user_output.write(f"{hashhash[h]}\n")
 
             hashhashsplitsdummy = dict()
             for h in hashhashsplits.keys():
@@ -130,16 +136,20 @@ def main():
                                 else:
                                     peruser_perfolder_summaries[u][p].non_dup_Bytes.append(f.size)
                                     peruser_perfolder_summaries[u][p].non_dup_ages.append(f.mtime)
-                    user_output.write(f"{hashhashsplits[h]}\n")
+                    if args.duplicatesonly:
+                        if hashhashsplits[h].ndup > 1:
+                            user_output.write(f"{hashhashsplits[h]}\n")
+                    else:
+                        user_output.write(f"{hashhashsplits[h]}\n")
         del hashhash
         del hashhashsplits
         del hashhashsplitsdummy
-        user_output.close()
+        # user_output.close()
         with open(os.path.join(os.path.abspath(args.outdir),str(u)+".summary.txt"),'w') as user_summary:
             for p in paths:
                 peruser_perfolder_summaries[u][p].update_scores(quota)
                 user_summary.write(f"{peruser_perfolder_summaries[u][p]}\n")
-        user_summary.close()
+        # user_summary.close()
 
 
 if __name__ == '__main__': main()
