@@ -24,9 +24,13 @@ conda activate py311
 export PATH=${SCRIPT_DIR}:$PATH
 
 outfile=$(echo "${INFOLDER}.ls"|sed "s/\//_/g")
+if [ "$SLURM_JOB_ID" == "" ]; then 
+    tmpdir="$OUTFOLDER"
+else
+    tmpdir="/lscratch/${SLURM_JOB_ID}"
+fi
 
-# run spacesavers2_ls
-spacesavers2_ls -f $INFOLDER -p $THREADS -e > ${OUTFOLDER}/${outfile}
-
-# run spacesavers2_finddup
-spacesavers2_finddup -f ${OUTFOLDER}/${outfile} -o ${OUTFOLDER} -q $QUOTA -z -p
+# run spacesavers2
+if [ ! -d $OUTFOLDER ];then mkdir -p $OUTFOLDER;fi && \
+spacesavers2_ls -f $INFOLDER -p $THREADS -e > ${OUTFOLDER}/${outfile} && \
+spacesavers2_finddup -f ${OUTFOLDER}/${outfile} -o ${OUTFOLDER} -q $QUOTA -z -p -t $tmpdir
