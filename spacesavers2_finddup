@@ -104,8 +104,7 @@ def main():
                 hash = fd.xhash_top + "#" + fd.xhash_bottom
                 if not hash in hashhash: hashhash[hash] = dfUnit(hash)
                 hashhash[hash].flist.append(fd)
-        
-        paths = list(paths)
+        paths = list(map(lambda x:str(x),paths))
         paths.sort()
         paths = list(filter(lambda x:get_depth(x) <= args.maxdepth,paths))
         users = list(users)
@@ -118,7 +117,7 @@ def main():
             with open(pkl,'wb') as outpkl:
                 pickle.dump([hashhash,users,paths,uid2uname,gid2gname],outpkl)
 
-    
+
     if not args.uid in users:
         exit("ERROR: {} is not a valid user!".format(str(args.uid)))
 
@@ -133,7 +132,8 @@ def main():
             if hashhash[h].ndup != 0:
                 for p in paths:
                     for f in hashhash[h].flist:
-                        if f.apath.startswith(p):
+                        # if f.apath.startswith(p):
+                        if p in str(f.apath):
                             if hashhash[h].oinode != -1 and hashhash[h].oinode != f.inode: #its a duplicate
                                 peruser_perfolder_summaries[p].dup_Bytes.append(f.size)
                                 peruser_perfolder_summaries[p].dup_ages.append(f.mtime)
@@ -152,7 +152,8 @@ def main():
             if hashhashsplits[h].ndup != 0:
                 for p in paths:
                     for f in hashhashsplits[h].flist:
-                        if f.apath.startswith(p):
+                        # if f.apath.startswith(p):
+                        if p in str(f.apath):
                             if hashhashsplits[h].oinode != -1 and hashhashsplits[h].oinode != f.inode: #its a duplicate
                                 peruser_perfolder_summaries[p].dup_Bytes.append(f.size)
                                 peruser_perfolder_summaries[p].dup_ages.append(f.mtime)

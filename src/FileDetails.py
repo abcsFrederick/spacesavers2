@@ -1,7 +1,7 @@
 import os
 import time
 import sys
-from .utils import get_username_groupname
+from pathlib import Path
 
 try:
     import xxhash
@@ -14,7 +14,7 @@ TB = THRESHOLDSIZE+BUFFERSIZE
 SEED = 20230502
 MINDEPTH = 3
 
-special_extensions=["bam","bai","bigwig","bw","csi"]
+special_extensions=[".bam",".bai",".bigwig",".bw",".csi"]
 SED = dict()                                # special extensions dict
 for se in special_extensions:
     SED[se]=1
@@ -40,48 +40,49 @@ class FileDetails:
         self.xhash_bottom   = ""
 
     def initialize(self,f,thresholdsize=THRESHOLDSIZE, buffersize=BUFFERSIZE, tb=TB, sed=SED, bottomhash=False):
-        self.apath  = os.path.abspath(f)
-        ext = self.apath.split(".")[-1]     # get extension
-        self.issyml	= os.path.islink(self.apath)     # is a symbolic link
-        st		    = os.stat(self.apath)            # gather all stats
-        self.size 	= st.st_size            # size in bytes
-        self.dev 	= st.st_dev             # Device id
-        self.inode 	= st.st_ino             # Inode
-        self.nlink 	= st.st_nlink		    # number of hardlinks
-        self.atime	= convert_time_to_age(st.st_atime)           # access time
-        self.mtime	= convert_time_to_age(st.st_mtime)           # modification time
-        self.ctime	= convert_time_to_age(st.st_ctime)           # creation time
-        self.uid	= st.st_uid             # user id
-        self.gid	= st.st_gid             # group id
-        if ext in sed:
-            if self.size > tb:
-                fh = open(self.apath,'rb')
-                data = fh.read(thresholdsize)
-                data = fh.read(buffersize)
-                self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
-                if bottomhash:
-                    fh.seek(-1 * buffersize,2)
+        self.apath  = Path(f).absolute()                         # path is of type PosixPath
+        ext         = self.apath.suffix
+        self.issyml	= self.apath.is_symlink()                   # is a symbolic link
+        st		    = os.stat(self.apath)                       # gather all stats
+        self.size 	= st.st_size                                # size in bytes
+        self.dev 	= st.st_dev                                 # Device id
+        self.inode 	= st.st_ino                                 # Inode
+        self.nlink 	= st.st_nlink		                        # number of hardlinks
+        self.atime	= convert_time_to_age(st.st_atime)          # access time
+        self.mtime	= convert_time_to_age(st.st_mtime)          # modification time
+        self.ctime	= convert_time_to_age(st.st_ctime)          # creation time
+        self.uid	= st.st_uid                                 # user id
+        self.gid	= st.st_gid                                 # group id
+        with open(self.apath,'rb') as fh:
+            if ext in sed:
+                if self.size > tb:
+                    data = fh.read(thresholdsize)
                     data = fh.read(buffersize)
-                    self.xhash_bottom = xxhash.xxh128(data,seed=SEED).hexdigest()
+                    self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
+                    if bottomhash:
+                        fh.seek(-1 * buffersize,2)
+                        data = fh.read(buffersize)
+                        self.xhash_bottom = xxhash.xxh128(data,seed=SEED).hexdigest()
+                    else:
+                        self.xhash_bottom = self.xhash_top
                 else:
+                    data = fh.read()
+                    self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
                     self.xhash_bottom = self.xhash_top
             else:
-                self.xhash_top = xxhash.xxh128(self.apath,seed=SEED).hexdigest()
-                self.xhash_bottom = self.xhash_top
-        else:
-            if self.size > buffersize:
-                fh = open(self.apath,'rb')
-                data = fh.read(buffersize)
-                self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
-                if bottomhash:
-                    fh.seek(-1 * buffersize,2)
+                if self.size > buffersize:
                     data = fh.read(buffersize)
-                    self.xhash_bottom = xxhash.xxh128(data,seed=SEED).hexdigest()
+                    self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
+                    if bottomhash:
+                        fh.seek(-1 * buffersize,2)
+                        data = fh.read(buffersize)
+                        self.xhash_bottom = xxhash.xxh128(data,seed=SEED).hexdigest()
+                    else:
+                        self.xhash_bottom = self.xhash_top
                 else:
+                    data = fh.read()
+                    self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
                     self.xhash_bottom = self.xhash_top
-            else:
-                self.xhash_top = xxhash.xxh128(self.apath,seed=SEED).hexdigest()
-                self.xhash_bottom = self.xhash_top
 
     def set(self,ls_line):
         ls_line         = ls_line.strip().strip(";").replace("\"","").split(";")
@@ -98,7 +99,7 @@ class FileDetails:
         self.size       = int(ls_line.pop(-1))
         issyml = ls_line.pop(-1)
         self.issyml     = issyml == 'True'
-        self.apath      = os.path.abspath(";".join(ls_line))
+        self.apath      = Path(";".join(ls_line))         # sometimes filename have ";" in them ... hence this!
                     
     
     def str_with_name(self,uid2uname,gid2gname):# method for printing output in finddup ... replace "xhash_top;xhash_bottom" with "username;groupname" at the end of the string
@@ -147,11 +148,8 @@ class FileDetails:
         return paths
 
     def get_depth(self):
-        abspath = str(self.apath).replace("\"","").strip("/").split("/")
-        return len(abspath) - 1
+        return len(list(self.apath.parents)) - 1
     
     def get_path(self):
-        abspath = str(self.apath).replace("\"","").strip("/").split("/")
-        abspath.pop(-1)
-        return "/"+"/".join(abspath)
+        return self.apath.parents[0]
 
