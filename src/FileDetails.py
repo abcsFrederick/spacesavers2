@@ -53,36 +53,39 @@ class FileDetails:
         self.ctime	= convert_time_to_age(st.st_ctime)          # creation time
         self.uid	= st.st_uid                                 # user id
         self.gid	= st.st_gid                                 # group id
-        with open(self.apath,'rb') as fh:
-            if ext in sed:
-                if self.size > tb:
-                    data = fh.read(thresholdsize)
-                    data = fh.read(buffersize)
-                    self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
-                    if bottomhash:
-                        fh.seek(-1 * buffersize,2)
+        try:
+            with open(self.apath,'rb') as fh:
+                if ext in sed:
+                    if self.size > tb:
+                        data = fh.read(thresholdsize)
                         data = fh.read(buffersize)
-                        self.xhash_bottom = xxhash.xxh128(data,seed=SEED).hexdigest()
+                        self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
+                        if bottomhash:
+                            fh.seek(-1 * buffersize,2)
+                            data = fh.read(buffersize)
+                            self.xhash_bottom = xxhash.xxh128(data,seed=SEED).hexdigest()
+                        else:
+                            self.xhash_bottom = self.xhash_top
                     else:
+                        data = fh.read()
+                        self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
                         self.xhash_bottom = self.xhash_top
                 else:
-                    data = fh.read()
-                    self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
-                    self.xhash_bottom = self.xhash_top
-            else:
-                if self.size > buffersize:
-                    data = fh.read(buffersize)
-                    self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
-                    if bottomhash:
-                        fh.seek(-1 * buffersize,2)
+                    if self.size > buffersize:
                         data = fh.read(buffersize)
-                        self.xhash_bottom = xxhash.xxh128(data,seed=SEED).hexdigest()
+                        self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
+                        if bottomhash:
+                            fh.seek(-1 * buffersize,2)
+                            data = fh.read(buffersize)
+                            self.xhash_bottom = xxhash.xxh128(data,seed=SEED).hexdigest()
+                        else:
+                            self.xhash_bottom = self.xhash_top
                     else:
+                        data = fh.read()
+                        self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
                         self.xhash_bottom = self.xhash_top
-                else:
-                    data = fh.read()
-                    self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
-                    self.xhash_bottom = self.xhash_top
+        except:
+            sys.stderr.write("File cannot be read:{}\n".format(self.path))
 
     def set(self,ls_line):
         ls_line         = ls_line.strip().strip(";").replace("\"","").split(";")

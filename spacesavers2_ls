@@ -8,6 +8,7 @@ version_check()
 import glob
 import textwrap
 import os
+import sys
 from src.FileDetails import FileDetails
 from multiprocessing import Pool
 import argparse
@@ -60,6 +61,6 @@ def main():
 
     with Pool(processes=args.threads) as pool:
         for result in pool.imap_unordered(task,files):
-            if not result=="": print(result)
+            if not result=="": sys.stdout.write(f"{result}\n")
 
 if __name__ == '__main__': main()
