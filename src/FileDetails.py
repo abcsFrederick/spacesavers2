@@ -1,6 +1,7 @@
 import os
 import time
 import sys
+from .utils import get_username_groupname
 
 try:
     import xxhash
@@ -100,7 +101,23 @@ class FileDetails:
         self.apath      = os.path.abspath(";".join(ls_line))
                     
     
-    def __str__(self):
+    def str_with_name(self):# method for printing output in finddup ... replace "xhash_top;xhash_bottom" with "username;groupname" at the end of the string
+        return_str = "\"%s\";"%(self.apath)
+        # return_str += "%s;"%(self.issyml)
+        return_str += "%d;"%(self.size)
+        return_str += "%d;"%(self.dev)
+        return_str += "%d;"%(self.inode)
+        return_str += "%d;"%(self.nlink)
+        # return_str += "%d;"%(self.atime)
+        return_str += "%d;"%(self.mtime)
+        # return_str += "%d;"%(self.ctime)
+        return_str += "%d;"%(self.uid)
+        return_str += "%d;"%(self.gid)
+        return_str += "%s;"%(get_username_groupname(self.uid))
+        return_str += "%s;"%(get_username_groupname(self.gid))
+        return return_str
+
+    def __str__(self):    
         return_str = "\"%s\";"%(self.apath)
         return_str += "%s;"%(self.issyml)
         return_str += "%d;"%(self.size)
