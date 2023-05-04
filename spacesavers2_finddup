@@ -84,11 +84,14 @@ def main():
         elif not check_readable_file(args.readpickle):
             exit("ERROR: {} pickle exists but cannot be read!".format(args.readpickle))
         with open(args.readpickle, 'rb') as inpkl:
-            hashhash, users, paths = pickle.load(inpkl)
+            hashhash, users, paths, uid2uname, gid2gname = pickle.load(inpkl)
     else:
+        uid2uname = dict()
+        gid2gname = dict()
         hashhash = dict()
         users = set()       # list of all users found
         users.add(0)        # 0 == all users
+        groups = set()      # list of groups
         paths = set()       
         with open(args.lsout) as lsout:
             for l in lsout:
@@ -96,6 +99,7 @@ def main():
                 fd.set(l)
                 if fd.issyml: continue
                 users.add(fd.uid)
+                groups.add(fd.gid)
                 paths.add(fd.get_path())
                 hash = fd.xhash_top + "#" + fd.xhash_bottom
                 if not hash in hashhash: hashhash[hash] = dfUnit(hash)
@@ -105,10 +109,14 @@ def main():
         paths.sort()
         paths = list(filter(lambda x:get_depth(x) <= args.maxdepth,paths))
         users = list(users)
+        for uid in users:
+            uid2uname[uid] = get_username_groupname(uid)
+        for gid in groups:
+            gid2gname[gid] = get_username_groupname(gid)
 
         if args.createpickle or args.peruser:
             with open(pkl,'wb') as outpkl:
-                pickle.dump([hashhash,users,paths],outpkl)
+                pickle.dump([hashhash,users,paths,uid2uname,gid2gname],outpkl)
 
     
     if not args.uid in users:
@@ -134,9 +142,9 @@ def main():
                                 peruser_perfolder_summaries[p].non_dup_ages.append(f.mtime)
                 if args.duplicatesonly:
                     if hashhash[h].ndup > 1:
-                        user_output.write(f"{hashhash[h]}\n")
+                        user_output.write("{}\n".format(hashhash[h].str_with_name(uid2uname,gid2gname)))
                 else:
-                    user_output.write(f"{hashhash[h]}\n")
+                    user_output.write("{}\n".format(hashhash[h].str_with_name(uid2uname,gid2gname)))
 
         hashhashsplitsdummy = dict()
         for h in hashhashsplits.keys():
@@ -153,9 +161,9 @@ def main():
                                 peruser_perfolder_summaries[p].non_dup_ages.append(f.mtime)
                 if args.duplicatesonly:
                     if hashhashsplits[h].ndup > 1:
-                        user_output.write(f"{hashhashsplits[h]}\n")
+                        user_output.write("{}\n".format(hashhashsplits[h].str_with_name(uid2uname,gid2gname)))
                 else:
-                    user_output.write(f"{hashhashsplits[h]}\n")
+                    user_output.write("{}\n".format(hashhashsplits[h].str_with_name(uid2uname,gid2gname)))
     del hashhash
     del hashhashsplits
     del hashhashsplitsdummy

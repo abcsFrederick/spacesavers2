@@ -83,11 +83,7 @@ class dfUnit:
             self.ndup = 0
     
     def __str__(self):
-        # print("HERE")
-        # print(self.hash)
-        # print(self.ndup)
-        # print(self.size)
-        # print("##".join(map(lambda x:str(x),self.flist)))
-        # exit()
-        return "{0} : {1} {2} {3}".format(self.hash, self.ndup, self.ndup * self.size,"##".join(map(lambda x:x.str_with_name(),self.flist)))
+        return "{0} : {1} {2} {3}".format(self.hash, self.ndup, self.ndup * self.size,"##".join(map(lambda x:str(x),self.flist)))
         
+    def str_with_name(self,uid2uname, gid2gname):
+        return "{0} : {1} {2} {3}".format(self.hash, self.ndup, self.ndup * self.size,"##".join(map(lambda x:x.str_with_name(uid2uname,gid2gname),self.flist)))

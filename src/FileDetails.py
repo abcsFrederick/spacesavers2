@@ -101,7 +101,7 @@ class FileDetails:
         self.apath      = os.path.abspath(";".join(ls_line))
                     
     
-    def str_with_name(self):# method for printing output in finddup ... replace "xhash_top;xhash_bottom" with "username;groupname" at the end of the string
+    def str_with_name(self,uid2uname,gid2gname):# method for printing output in finddup ... replace "xhash_top;xhash_bottom" with "username;groupname" at the end of the string
         return_str = "\"%s\";"%(self.apath)
         # return_str += "%s;"%(self.issyml)
         return_str += "%d;"%(self.size)
@@ -113,8 +113,8 @@ class FileDetails:
         # return_str += "%d;"%(self.ctime)
         return_str += "%d;"%(self.uid)
         return_str += "%d;"%(self.gid)
-        return_str += "%s;"%(get_username_groupname(self.uid))
-        return_str += "%s;"%(get_username_groupname(self.gid))
+        return_str += "%s;"%(uid2uname[self.uid])
+        return_str += "%s;"%(gid2gname[self.gid])
         return return_str
 
     def __str__(self):    
