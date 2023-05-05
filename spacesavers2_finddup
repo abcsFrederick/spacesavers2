@@ -3,9 +3,7 @@ import sys
 import os
 import gzip
 import textwrap
-import pickle
-import subprocess
-import shlex
+import time
 
 MINDEPTH = 3
 QUOTA_TB = 20
@@ -55,9 +53,16 @@ def process_hh(uid,hashhash,hashhashsplits,mindepth,maxdepth,uid2uname,gid2gname
         else:
             user_output.write("{}\n".format(hashhash[h].str_with_name(uid2uname,gid2gname,uid_file_index)))
 
+def get_timestamp():
+    e = time.time()
+    return "%08.2fs"%(e-start)
 
+def print_with_timestamp(s):
+    sys.stdout.write("spacesavers2_finddup:{}:{}\n".format(get_timestamp(),s))
 
 def main():
+    global start
+    start = time.time()
     elog=textwrap.dedent("""\
     Version: 
         {}
@@ -66,161 +71,101 @@ def main():
         """.format(__version__)) 
     parser = argparse.ArgumentParser(description="spacesavers2_finddup: find duplicates",
                                      epilog=elog)
+    
     parser.add_argument("-f","--lsout",dest="lsout",required=True,type=str,default=sys.stdin,
         help="spacesavers2_ls output from STDIN or from file")
-    parser.add_argument("-u","--uid",dest="uid",required=False,type=int,default=0,
-        help="user id or 0 for all users ... if 0 is provided the {sys.argv[1]} is run for all users")
+
     parser.add_argument("-d","--maxdepth",dest="maxdepth",required=False,type=int,default=10,
         help="folder max. depth upto which reports are aggregated")
+    
     parser.add_argument("-o","--outdir",dest="outdir",required=False,type=str,default=os.getcwd(),
         help="output folder")
+    
     parser.add_argument("-q","--quota",dest="quota",required=False,type=float,default=200.0,
         help="total quota of the mount eg. 200 TB for /data/CCBR")
-    parser.add_argument("-n","--parallelj",dest="parallelj",required=False,type=int,default=4,
-        help="Number of users to run in parallel")
+    
     parser.add_argument('-z',"--duplicatesonly",dest="duplicatesonly",required=False,action=argparse.BooleanOptionalAction,
         help="Print only duplicates to per user output file.")
-    parser.add_argument('-p',"--peruser",dest="peruser",required=False,action=argparse.BooleanOptionalAction,
-        help="By default it ignores userid and runs all at once. In addition, this option will run on per-user basis using gnuparallel")
-    parser.add_argument("-t","--tmpdir",dest="tmpdir",required=False,type=str,default=os.getcwd(),
-        help="temp folder to save intermediate files like the pickle")
-    parser.add_argument("-c","--createpickle",dest="createpickle",required=False,type=str,
-        help="create a pickle file for future use")
-    parser.add_argument("-k","--readpickle",dest="readpickle",required=False,type=str,
-        help="use this pickle file instead of re-reading file at -f")
-        
+
+    print_with_timestamp("version: {}".format(__version__))
+
     global args
     args = parser.parse_args()
     quota = args.quota * 1024 * 1024 * 1024 * 1024
 
     check_writeable_folder(args.outdir)
-    # check_writeable_folder(args.tmpdir)
-
-    if args.peruser: # check if parallel is in path
-        path_to_parallel = which("parallel")
-        if path_to_parallel == None:
-            exit("parallel is NOT in path!")
-        else:
-            print(f"Using parallel from here:{path_to_parallel}")
-        if args.uid != 0:
-            print("ERROR: -p option can only be used with -u = 0!")
-        if not args.createpickle: 
-            pkl = os.path.join(os.path.abspath(args.tmpdir),"pickle.pkl")
     
-    if args.createpickle and args.readpickle:
-        exit("ERROR: pickle can either be created or read ... not both at the same time!")
-    
-    if args.createpickle:
-        if os.path.exists(args.createpickle): os.remove(args.createpickle)
-        pkl = args.createpickle
-
-    if args.readpickle:
-        if not os.path.exists(args.readpickle):
-            exit("ERROR: {} pickle does not exist!".format(args.readpickle))
-        elif not check_readable_file(args.readpickle):
-            exit("ERROR: {} pickle exists but cannot be read!".format(args.readpickle))
-        with open(args.readpickle, 'rb') as inpkl:
-            hashhash, users, paths, uid2uname, gid2gname = pickle.load(inpkl)
+    uid2uname = dict()
+    gid2gname = dict()
+    hashhash = dict()
+    users = set()       # list of all users found
+    users.add(0)        # 0 == all users
+    groups = set()      # list of groups
+    paths = set()
+    path_lens = []
+    print_with_timestamp("Reading in ls_out file...")       
+    with open(args.lsout) as lsout:
+        for l in lsout:
+            fd = FileDetails()
+            fd.set(l)
+            if fd.issyml: continue          # ignore all symlinks
+            users.add(fd.uid)
+            groups.add(fd.gid)
+            path_lens.append(get_file_depth(fd.apath))
+            for p in fd.get_paths_at_all_depths():
+                paths.add(p)
+            hash = fd.xhash_top + "#" + fd.xhash_bottom
+            if not hash in hashhash: hashhash[hash] = dfUnit(hash)
+            hashhash[hash].add_fd(fd)
+    min_path_len = min(path_lens)
+    max_path_len = max(path_lens)
+    if args.maxdepth > max_path_len:
+        mindepth = min_path_len 
+        maxdepth = max_path_len
+    elif args.maxdepth > min_path_len:
+        mindepth = min_path_len
+        maxdepth = args.maxdepth
     else:
-        uid2uname = dict()
-        gid2gname = dict()
-        hashhash = dict()
-        users = set()       # list of all users found
-        users.add(0)        # 0 == all users
-        groups = set()      # list of groups
-        paths = set()
-        path_lens = []       
-        with open(args.lsout) as lsout:
-            for l in lsout:
-                fd = FileDetails()
-                fd.set(l)
-                if fd.issyml: continue          # ignore all symlinks
-                users.add(fd.uid)
-                groups.add(fd.gid)
-                path_lens.append(get_file_depth(fd.apath))
-                for p in fd.get_paths_at_all_depths():
-                    paths.add(p)
-                hash = fd.xhash_top + "#" + fd.xhash_bottom
-                if not hash in hashhash: hashhash[hash] = dfUnit(hash)
-                hashhash[hash].add_fd(fd)
-        min_path_len = min(path_lens)
-        max_path_len = max(path_lens)
-        if args.maxdepth > max_path_len:
-            mindepth = min_path_len 
-            maxdepth = max_path_len
-        elif args.maxdepth > min_path_len:
-            mindepth = min_path_len
-            maxdepth = args.maxdepth
-        else:
-            mindepth = args.maxdepth
-            maxdepth = args.maxdepth 
-        # print("BEFORE")
-        # for p in paths:
-        #     print(p,get_folder_depth(p))
-        # filter paths by maxdepth
-        paths = list(filter(lambda x:get_folder_depth(x) <= maxdepth,paths))
-        paths = list(filter(lambda x:get_folder_depth(x) >= mindepth,paths))
-        # convert PosixPaths list to list of strings
-        paths = list(map(lambda x:str(x),paths))
-        # sort paths for outfile aesthetics
-        paths.sort()
-        # reconvert to paths
-        paths = list(map(lambda x:Path(x),paths))
-        users = list(users)
-        for uid in users:
-            uid2uname[uid] = get_username_groupname(uid)
-        for gid in groups:
-            gid2gname[gid] = get_username_groupname(gid)
+        mindepth = args.maxdepth
+        maxdepth = args.maxdepth 
 
-        if args.createpickle or args.peruser:
-            with open(pkl,'wb') as outpkl:
-                pickle.dump([hashhash,users,paths,uid2uname,gid2gname],outpkl)
+    # filter paths by maxdepth
+    paths = list(filter(lambda x:get_folder_depth(x) <= maxdepth,paths))
+    paths = list(filter(lambda x:get_folder_depth(x) >= mindepth,paths))
+    # convert PosixPaths list to list of strings
+    paths = list(map(lambda x:str(x),paths))
+    # sort paths for outfile aesthetics
+    paths.sort()
+    # reconvert to paths
+    paths = list(map(lambda x:Path(x),paths))
+    users = list(users)
+    for uid in users:
+        uid2uname[uid] = get_username_groupname(uid)
+    for gid in groups:
+        gid2gname[gid] = get_username_groupname(gid)
+    print_with_timestamp("Done reading in ls_out file!")
+    print_with_timestamp("Total Number of paths: %d"%len(paths))
+    print_with_timestamp("Total Number of users: %d"%len(users))
 
-    # print("AFTER")
-    # for p in paths:
-    #     print(p,get_folder_depth(p))
 
-    if not args.uid in users:
-        exit("ERROR: {} is not a valid user!".format(str(args.uid)))
-
-    peruser_perfolder_summaries = dict()
-    for p in paths:
-        peruser_perfolder_summaries[p] = Summary(p)
-
-    with gzip.open(os.path.join(os.path.abspath(args.outdir),get_username_groupname(args.uid)+".files.gz"),'wt') as user_output:
-        hashhashsplits = dict() # dict to collect instances where the files are NOT duplicates has same hashes but different sizes (and different inodes) ... new suffix is added to bottomhash .."_iterator"
-        process_hh(args.uid,hashhash,hashhashsplits,mindepth,maxdepth,uid2uname,gid2gname,peruser_perfolder_summaries,user_output)
-        hashhashsplitsdummy = dict()
-        process_hh(args.uid,hashhashsplits,hashhashsplitsdummy,mindepth,maxdepth,uid2uname,gid2gname,peruser_perfolder_summaries,user_output)
+    for uid in users:
+        print_with_timestamp("Gathering stats for user: %s"%(uid2uname[uid]))
+        with gzip.open(os.path.join(os.path.abspath(args.outdir),get_username_groupname(uid)+".files.gz"),'wt') as user_output, open(os.path.join(os.path.abspath(args.outdir),get_username_groupname(uid)+".summary.txt"),'w') as user_summary:
+            peruser_perfolder_summaries = dict()
+            for p in paths:
+                peruser_perfolder_summaries[p] = Summary(p)
+            hashhashsplits = dict() # dict to collect instances where the files are NOT duplicates has same hashes but different sizes (and different inodes) ... new suffix is added to bottomhash .."_iterator"
+            process_hh(uid,hashhash,hashhashsplits,mindepth,maxdepth,uid2uname,gid2gname,peruser_perfolder_summaries,user_output)
+            hashhashsplitsdummy = dict()
+            process_hh(uid,hashhashsplits,hashhashsplitsdummy,mindepth,maxdepth,uid2uname,gid2gname,peruser_perfolder_summaries,user_output)
+            for p in paths:
+                peruser_perfolder_summaries[p].update_scores(quota)
+                user_summary.write(f"{peruser_perfolder_summaries[p]}\n")
 
     del hashhash
     del hashhashsplits
     del hashhashsplitsdummy
-    # user_output.close()
-    with open(os.path.join(os.path.abspath(args.outdir),get_username_groupname(args.uid)+".summary.txt"),'w') as user_summary:
-        for p in paths:
-            peruser_perfolder_summaries[p].update_scores(quota)
-            user_summary.write(f"{peruser_perfolder_summaries[p]}\n")
-    # user_summary.close()
+    print_with_timestamp("Finished!")
 
-    exit()
-
-    if args.peruser:
-        parallelfilename = os.path.join(os.path.abspath(args.outdir),"do_all_users")
-        with open(parallelfilename,'w') as parallelfile:
-            for u in users:
-                if u == 0: continue
-                cmd = __file__
-                cmd += " -f "+args.lsout
-                cmd += " -u "+str(u)
-                cmd += " -d "+str(args.maxdepth)
-                cmd += " -o "+args.outdir
-                cmd += " -q "+str(args.quota)
-                cmd += " -k "+pkl
-                if args.duplicatesonly: cmd += " -z "
-                parallelfile.write("{}\n".format(cmd))
-        parallelcmd = "parallel -j "+str(args.parallelj)+" -a "+parallelfilename
-        # print(parallelcmd)
-        subprocess.run(shlex.split(parallelcmd,posix=True),shell=False,text=True)
 
 if __name__ == '__main__': main()
