@@ -86,7 +86,7 @@ class FileDetails:
                         self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
                         self.xhash_bottom = self.xhash_top
         except:
-            sys.stderr.write("File cannot be read:{}\n".format(self.path))
+            sys.stderr.write("File cannot be read:{}\n".format(str(self.apath)))
 
     def set(self,ls_line):
         ls_line         = ls_line.strip().strip(";").replace("\"","").split(";")
