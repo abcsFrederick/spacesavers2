@@ -1,89 +1,69 @@
-
-def delete_unwanted_indexes(lst,unwanted_index_lst):
-    for ele in sorted(unwanted_index_lst, reverse = True):
-        del lst[ele]
-
-# Swap function
-def swapPositions(list, pos1, pos2):
-    list[pos1], list[pos2] = list[pos2], list[pos1]
-    return list
+import numpy
 
 class dfUnit:
     def __init__(self,hash):
         self.hash   = hash  # typically hash_top + "#" + hash_bottom
-        self.flist  = []    # list of _ls files with the same has
-        self.size   = -1    # total disk space occupied by all duplicates ... total size of (nfiles-symlinks-hardlinks)
+        self.flist  = []    # list of _ls files with the same hash
+        self.fsize  = -1    # size of each file
         self.ndup   = -1    # files in flist with same size, but different inode (they already have the same hash)
-        self.oinode = -1    # if dup then the original (oldest created) inode ... original == first created .. hence not duplicate
-        self.ouid   = -1    # if dup then the original (oldest creater) uid ... original == first created .. hence not duplicate
+        self.size_set   = set()    # set of unique sizes ... if len(size_set) then split is required
+        self.uid_list   = []        # list of uids of files added
+        self.inode_list = []        # list of inodes of files added
+        self.oldest_inode   = -1    # oldest_ ... is for the file which is NOT the duplicate
+        self.oldest_index   = -1
+        self.oldest_age     = -1
+        self.oldest_uid     = -1
     
-    def filter_flist_by_uid(self,uid):
-        to_delete = []
-        for i,fl in enumerate(self.flist):
-            if fl.uid != uid : to_delete.append(i)
-        delete_unwanted_indexes(self.flist,to_delete)
-    
-    def filter_out_symlinks_from_flist(self):
-        to_delete = []
-        for i,fl in enumerate(self.flist):
-            if fl.issyml : to_delete.append(i)
-        delete_unwanted_indexes(self.flist,to_delete)
-            
-    def compute(self,uid,hashhashsplits): # 1. move oldest to the first position 2. find ndup 3. find size 4. filter by uid 5. get depth folder
-        if uid != 0: self.filter_flist_by_uid(uid)
-        # self.filter_out_symlinks_from_flist() # already done this before
-        nf = len(self.flist)
+    def add_fd(self,fd):
+        # add the file to flist
+        self.flist.append(fd)
+        # add size if not already present
+        self.size_set.add(fd.size)
+        # add uid
+        self.uid_list.append(fd.uid)
+        # add inode
+        self.inode_list.append(fd.inode)
+        # update oldest file
+        if fd.mtime > self.oldest_age: # current file is older than known oldest
+            self.oldest_age     = fd.mtime
+            self.oldest_index   = len(self.flist) - 1 # oldest_index is the index of the item last added
+            self.oldest_uid     = fd.uid
+            self.oldest_inode   = fd.inode
 
-        if nf > 1:
-            # if files have same size but different inode .. they are duplicates
-            # if flist has different sizes then they should be split into different hash ... as they are NOT duplicates
-            to_delete = list()  # make list of redundant inode files to delete ... these are just hardlinks ... ignore for now.
-            sizelist = dict()
+    def filter_flist_by_uid(self,uid):
+        for i,f in enumerate(self.flist):
+            if f.uid == uid : self.keep.append(i)
+                
+    def compute(self,hashhashsplits,split_required): # 1. move oldest to the first position 2. find ndup 3. find size 4. filter by uid 5. get depth folder
+        # check if spliting is required
+        if len(self.size_set) > 1: # more than 1 size in this hash
+            split_required = True
+            for i,size in enumerate(self.size_set):
+                tophash, bottomhash = self.hash.split("#")
+                bottomhash += "_" + str(i)
+                newhash = "#".join([tophash,bottomhash])        # this is the newhash for this size
+                hashhashsplits[newhash] = dfUnit(newhash)
+                for fd in self.flist:
+                    if fd.size == size:
+                        hashhashsplits[newhash].add_fd(fd)
+        else: # there only 1 size ... no splits required
+            self.ndup   = len(self.inode_list) - 1  #ndup is zero if same size and only 1 inode
+            self.fsize  = self.flist[0].size
+    
+    def get_user_file_index(self,uid):
+        uid_file_index = []
+        if not uid in self.uid_list:
+            if uid == 0: uid_file_index = list(range(0,len(self.flist)))
+            return uid_file_index
+        else:
             for i,j in enumerate(self.flist):
-                # if j.issyml: continue
-                if not j.size in sizelist: sizelist[j.size] = dict()
-                if j.inode in sizelist[j.size]:
-                    to_delete.append(i)
-                else:
-                    sizelist[j.size][j.inode] = 1
-            delete_unwanted_indexes(self.flist,to_delete)
-            if len(sizelist) != 1:  # multiple sizes found ... split required
-                self.size = 0
-                self.ndup = 0                
-                for i,s in enumerate(sizelist.keys()):
-                    tophash, bottomhash = self.hash.split("#")
-                    bottomhash += "_" + str(i)
-                    newhash = "#".join([tophash,bottomhash])
-                    hashhashsplits[newhash] = dfUnit(newhash)
-                    for f in self.flist:
-                        if f.inode in sizelist[s]:
-                            f.xhash_bottom = bottomhash
-                            hashhashsplits[newhash].flist.append(f)
-            else: # all files are duplicates and have the same hash, same size but different inodes
-                self.size = list(sizelist.keys())[0]
-                self.ndup = len(sizelist[self.size])
-                # bring the earliest created file to the beginning
-                earliest_time = -1
-                earliest = -1
-                for i,j in enumerate(self.flist):
-                    if earliest_time == -1: 
-                        earliest_time = j.ctime
-                        earliest = i
-                    elif earliest_time > j.ctime:
-                        earliest_time = j.ctime
-                        earliest = i
-                if earliest > 0: self.flist = swapPositions(self.flist,0,earliest)
-                self.oinode = self.flist[0].inode
-                self.ouid   = self.flist[0].uid
-        elif nf == 1:
-                self.size = self.flist[0].size
-                self.ndup = 1
-        else: # nf == 0
-            self.size = 0
-            self.ndup = 0
+                if j.uid == uid: uid_file_index.append(i)
+            return uid_file_index
+
+
     
     def __str__(self):
-        return "{0} : {1} {2} {3}".format(self.hash, self.ndup, self.ndup * self.size,"##".join(map(lambda x:str(x),self.flist)))
+        return "{0} : {1} {2} {3}".format(self.hash, self.ndup, self.fsize,"##".join(map(lambda x:str(x),self.flist)))
         
-    def str_with_name(self,uid2uname, gid2gname):
-        return "{0} : {1} {2} {3}".format(self.hash, self.ndup, self.ndup * self.size,"##".join(map(lambda x:x.str_with_name(uid2uname,gid2gname),self.flist)))
+    def str_with_name(self,uid2uname, gid2gname,findex):
+        return "{0} : {1} {2} {3}".format(self.hash, self.ndup, self.fsize,"##".join(map(lambda x:x.str_with_name(uid2uname,gid2gname),[self.flist[i] for i in findex])))

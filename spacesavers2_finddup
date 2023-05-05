@@ -21,6 +21,42 @@ from src.utils import *
 
 import argparse
 
+def process_hh(uid,hashhash,hashhashsplits,mindepth,maxdepth,uid2uname,gid2gname,peruser_perfolder_summaries,user_output):
+    for h in hashhash.keys():
+        split_required = False
+        hashhash[h].compute(hashhashsplits,split_required)        # compute if split is needed or if we have duplicates
+        if split_required: continue                               # split is required so move on to the next hash
+        uid_file_index = hashhash[h].get_user_file_index(uid)
+        if len(uid_file_index) == 0: continue
+        uid_dup_file_index = []
+        if hashhash[h].ndup > 1:
+            for i in uid_file_index:
+                f = hashhash[h].flist[i]
+                fpaths = f.get_paths(mindepth,maxdepth)
+                if i == hashhash[h].oldest_index:   # its the original file ... not a duplicate
+                    for p in fpaths:
+                        peruser_perfolder_summaries[p].non_dup_Bytes.append(f.size)
+                        peruser_perfolder_summaries[p].non_dup_ages.append(f.mtime)
+                else:
+                    uid_dup_file_index.append(i)
+                    for p in fpaths:
+                        peruser_perfolder_summaries[p].dup_Bytes.append(f.size)
+                        peruser_perfolder_summaries[p].dup_ages.append(f.mtime)
+        else: # ndup == 1 .. meaning there are no duplicates .. just one file
+            for i in uid_file_index:
+                f = hashhash[h].flist[i]
+                fpaths = f.get_paths(mindepth,maxdepth)
+                for p in fpaths:
+                    peruser_perfolder_summaries[p].non_dup_Bytes.append(f.size)
+                    peruser_perfolder_summaries[p].non_dup_ages.append(f.mtime)
+        if args.duplicatesonly:
+            if len(uid_dup_file_index) > 0:
+                user_output.write("{}\n".format(hashhash[h].str_with_name(uid2uname,gid2gname,uid_dup_file_index)))
+        else:
+            user_output.write("{}\n".format(hashhash[h].str_with_name(uid2uname,gid2gname,uid_file_index)))
+
+
+
 def main():
     elog=textwrap.dedent("""\
     Version: 
@@ -92,21 +128,44 @@ def main():
         users = set()       # list of all users found
         users.add(0)        # 0 == all users
         groups = set()      # list of groups
-        paths = set()       
+        paths = set()
+        path_lens = []       
         with open(args.lsout) as lsout:
             for l in lsout:
                 fd = FileDetails()
                 fd.set(l)
-                if fd.issyml: continue
+                if fd.issyml: continue          # ignore all symlinks
                 users.add(fd.uid)
                 groups.add(fd.gid)
-                paths.add(fd.get_path())
+                path_lens.append(get_file_depth(fd.apath))
+                for p in fd.get_paths_at_all_depths():
+                    paths.add(p)
                 hash = fd.xhash_top + "#" + fd.xhash_bottom
                 if not hash in hashhash: hashhash[hash] = dfUnit(hash)
-                hashhash[hash].flist.append(fd)
+                hashhash[hash].add_fd(fd)
+        min_path_len = min(path_lens)
+        max_path_len = max(path_lens)
+        if args.maxdepth > max_path_len:
+            mindepth = min_path_len 
+            maxdepth = max_path_len
+        elif args.maxdepth > min_path_len:
+            mindepth = min_path_len
+            maxdepth = args.maxdepth
+        else:
+            mindepth = args.maxdepth
+            maxdepth = args.maxdepth 
+        # print("BEFORE")
+        # for p in paths:
+        #     print(p,get_folder_depth(p))
+        # filter paths by maxdepth
+        paths = list(filter(lambda x:get_folder_depth(x) <= maxdepth,paths))
+        paths = list(filter(lambda x:get_folder_depth(x) >= mindepth,paths))
+        # convert PosixPaths list to list of strings
         paths = list(map(lambda x:str(x),paths))
+        # sort paths for outfile aesthetics
         paths.sort()
-        paths = list(filter(lambda x:get_depth(x) <= args.maxdepth,paths))
+        # reconvert to paths
+        paths = list(map(lambda x:Path(x),paths))
         users = list(users)
         for uid in users:
             uid2uname[uid] = get_username_groupname(uid)
@@ -117,6 +176,9 @@ def main():
             with open(pkl,'wb') as outpkl:
                 pickle.dump([hashhash,users,paths,uid2uname,gid2gname],outpkl)
 
+    # print("AFTER")
+    # for p in paths:
+    #     print(p,get_folder_depth(p))
 
     if not args.uid in users:
         exit("ERROR: {} is not a valid user!".format(str(args.uid)))
@@ -127,44 +189,10 @@ def main():
 
     with gzip.open(os.path.join(os.path.abspath(args.outdir),get_username_groupname(args.uid)+".files.gz"),'wt') as user_output:
         hashhashsplits = dict() # dict to collect instances where the files are NOT duplicates has same hashes but different sizes (and different inodes) ... new suffix is added to bottomhash .."_iterator"
-        for h in hashhash.keys():
-            hashhash[h].compute(args.uid,hashhashsplits)
-            if hashhash[h].ndup != 0:
-                for p in paths:
-                    for f in hashhash[h].flist:
-                        # if f.apath.startswith(p):
-                        if p in str(f.apath):
-                            if hashhash[h].oinode != -1 and hashhash[h].oinode != f.inode: #its a duplicate
-                                peruser_perfolder_summaries[p].dup_Bytes.append(f.size)
-                                peruser_perfolder_summaries[p].dup_ages.append(f.mtime)
-                            else:
-                                peruser_perfolder_summaries[p].non_dup_Bytes.append(f.size)
-                                peruser_perfolder_summaries[p].non_dup_ages.append(f.mtime)
-                if args.duplicatesonly:
-                    if hashhash[h].ndup > 1:
-                        user_output.write("{}\n".format(hashhash[h].str_with_name(uid2uname,gid2gname)))
-                else:
-                    user_output.write("{}\n".format(hashhash[h].str_with_name(uid2uname,gid2gname)))
-
+        process_hh(args.uid,hashhash,hashhashsplits,mindepth,maxdepth,uid2uname,gid2gname,peruser_perfolder_summaries,user_output)
         hashhashsplitsdummy = dict()
-        for h in hashhashsplits.keys():
-            hashhashsplits[h].compute(args.uid,hashhashsplitsdummy)
-            if hashhashsplits[h].ndup != 0:
-                for p in paths:
-                    for f in hashhashsplits[h].flist:
-                        # if f.apath.startswith(p):
-                        if p in str(f.apath):
-                            if hashhashsplits[h].oinode != -1 and hashhashsplits[h].oinode != f.inode: #its a duplicate
-                                peruser_perfolder_summaries[p].dup_Bytes.append(f.size)
-                                peruser_perfolder_summaries[p].dup_ages.append(f.mtime)
-                            else:
-                                peruser_perfolder_summaries[p].non_dup_Bytes.append(f.size)
-                                peruser_perfolder_summaries[p].non_dup_ages.append(f.mtime)
-                if args.duplicatesonly:
-                    if hashhashsplits[h].ndup > 1:
-                        user_output.write("{}\n".format(hashhashsplits[h].str_with_name(uid2uname,gid2gname)))
-                else:
-                    user_output.write("{}\n".format(hashhashsplits[h].str_with_name(uid2uname,gid2gname)))
+        process_hh(args.uid,hashhashsplits,hashhashsplitsdummy,mindepth,maxdepth,uid2uname,gid2gname,peruser_perfolder_summaries,user_output)
+
     del hashhash
     del hashhashsplits
     del hashhashsplitsdummy
@@ -174,6 +202,8 @@ def main():
             peruser_perfolder_summaries[p].update_scores(quota)
             user_summary.write(f"{peruser_perfolder_summaries[p]}\n")
     # user_summary.close()
+
+    exit()
 
     if args.peruser:
         parallelfilename = os.path.join(os.path.abspath(args.outdir),"do_all_users")

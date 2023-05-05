@@ -30,14 +30,16 @@ def check_writeable_folder(folder):
 def check_readable_file(file):
     return os.access(file,os.R_OK)
 
-def get_depth(path):
-    abspath = str(path).strip("/").split("/")
-    return len(abspath) - 1
-
 def get_username_groupname(id):
     if id == 0: return "allusers"
     # x = subprocess.run(shlex.split("id -nu {}".format(uid)),capture_output=True,shell=False,text=True)
     x = subprocess.run(shlex.split("getent group {}".format(id)),capture_output=True,shell=False,text=True)
     x = x.stdout.strip().split(":")[0]
     return x
+
+def get_folder_depth(path):
+    return len(list(path.parents))
+
+def get_file_depth(path):
+    return len(list(path.parents))-1
 

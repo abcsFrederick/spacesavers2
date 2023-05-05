@@ -2,6 +2,7 @@ import os
 import time
 import sys
 from pathlib import Path
+from .utils import *
 
 try:
     import xxhash
@@ -137,22 +138,11 @@ class FileDetails:
         return_str += "%s;"%(self.xhash_bottom)
         return return_str
 
-    def get_path_at_depth(self,depth):
-        abspath = str(self.apath).strip("/").split("/")
-        maxd = len(abspath) - 1
-        if depth > maxd:
-            depth = maxd
-        return "/"+"/".join(abspath[:depth])
+    def get_paths_at_all_depths(self): # for files
+        return self.apath.parents[:-1]
 
-    def get_paths_at_all_depths(self,maxdepth):
-        paths = set()
-        for i in range(MINDEPTH,maxdepth+1): 
-            paths.add(self.get_path_at_depth(i))
-        return paths
-
-    def get_depth(self):
-        return len(list(self.apath.parents)) - 1
-    
-    def get_path(self):
-        return self.apath.parents[0]
-
+    def get_paths(self,mindepth,maxdepth):
+        parents = list(self.apath.parents[0:-1])
+        parents = list(filter(lambda x:get_folder_depth(x) <= maxdepth,parents))
+        parents = list(filter(lambda x:get_folder_depth(x) >= mindepth,parents))
+        return parents
