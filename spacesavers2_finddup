@@ -16,6 +16,7 @@ from src.FileDetails import FileDetails
 from src.dfUnit import dfUnit
 from src.Summary import Summary
 from src.utils import *
+from datetime import date
 
 import argparse
 
@@ -80,6 +81,9 @@ def main():
     
     parser.add_argument("-o","--outdir",dest="outdir",required=False,type=str,default=os.getcwd(),
         help="output folder")
+
+    parser.add_argument("-p","--prefix",dest="prefix",required=False,type=str,default="",
+        help="prefix for all output files")
     
     parser.add_argument("-q","--quota",dest="quota",required=False,type=float,default=200.0,
         help="total quota of the mount eg. 200 TB for /data/CCBR")
@@ -150,7 +154,11 @@ def main():
 
     for uid in users:
         print_with_timestamp("Gathering stats for user: %s"%(uid2uname[uid]))
-        with gzip.open(os.path.join(os.path.abspath(args.outdir),get_username_groupname(uid)+".files.gz"),'wt') as user_output, open(os.path.join(os.path.abspath(args.outdir),get_username_groupname(uid)+".summary.txt"),'w') as user_summary:
+        if args.prefix != "":
+            outfilenameprefix = args.prefix + "." + get_username_groupname(uid)+".files.gz"
+        else:
+            outfilenameprefix = get_username_groupname(uid)+".files.gz"
+        with gzip.open(os.path.join(os.path.abspath(args.outdir),outfilenameprefix + ".files.gz"),'wt') as user_output, open(os.path.join(os.path.abspath(args.outdir),outfilenameprefix + ".summary.txt"),'w') as user_summary:
             peruser_perfolder_summaries = dict()
             for p in paths:
                 peruser_perfolder_summaries[p] = Summary(p)
