@@ -1,5 +1,7 @@
 import os
 from pathlib import Path
+import shlex
+import subprocess
 
 def which(program):
     def is_exe(fpath):
@@ -27,4 +29,25 @@ def check_writeable_folder(folder):
 
 def check_readable_file(file):
     return os.access(file,os.R_OK)
+
+def get_username_groupname(id):
+    if id == 0: return "allusers"
+    x = subprocess.run(shlex.split("getent group {}".format(id)),capture_output=True,shell=False,text=True)
+    x = x.stdout.strip().split(":")[0]
+    if x == "":
+        y = subprocess.run(shlex.split("id -nu {}".format(id)),capture_output=True,shell=False,text=True)
+        y = y.stdout.strip()
+        if y == "":
+            name = str(id)
+        else:
+            name = y
+    else:
+        name = x
+    return name
+
+def get_folder_depth(path):
+    return len(list(path.parents))
+
+def get_file_depth(path):
+    return len(list(path.parents))-1
 

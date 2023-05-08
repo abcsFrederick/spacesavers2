@@ -8,6 +8,7 @@ version_check()
 import glob
 import textwrap
 import os
+import sys
 from src.FileDetails import FileDetails
 from multiprocessing import Pool
 import argparse
@@ -44,6 +45,8 @@ def main():
         help="this sized header of the file is ignored before extracting buffer of buffersize for xhash creation (only for special extension files)")
     parser.add_argument('-s',"--se",dest="se",required=False,type=str,default='bam,bai,bigwig,bw,csi',
         help="comma separated list of special extentions") 
+    parser.add_argument('-o',"--outfile",dest="outfile",required=False,type=str,
+        help="outfile ls_out file .. by default output is printed to screen") 
     parser.add_argument('-e',"--bottomhash",dest="bottomhash",required=False,action=argparse.BooleanOptionalAction,
         help="separately calculated second hash for the bottom/end of the file.") 
 
@@ -58,8 +61,16 @@ def main():
     folder = args.folder
     files = glob.iglob(os.path.join(folder, "**/*"), recursive=True, include_hidden=True)
 
+    if args.outfile:
+        outfh = open(args.outfile,'w')
+    else:
+        outfh = sys.stdout
+
     with Pool(processes=args.threads) as pool:
         for result in pool.imap_unordered(task,files):
-            if not result=="": print(result)
+            if not result=="": outfh.write(f"{result}\n")
+
+    if args.outfile:
+        outfh.close()
 
 if __name__ == '__main__': main()

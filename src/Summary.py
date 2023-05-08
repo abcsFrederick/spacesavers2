@@ -72,7 +72,7 @@ class Summary:
             tot_mean_age = 0
         dup_files = len(self.dup_Bytes)
         tot_files = dup_files + len(self.non_dup_Bytes)
-        return_str = self.path+"\t"
+        return_str = str(self.path)+"\t"
         return_str += "%d\t"%(tot_Bytes)
         return_str += "%d\t"%(dup_Bytes)
         try:
