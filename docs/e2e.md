@@ -3,7 +3,7 @@
 This is a wrapper to run `spacesavers2_ls` followed by `spacesavers2_finddup`. It automatically:
 
 - loads appropriate env on BIOWULF
-- addes appropriate prefixes to output files (including time)
+- adds appropriate prefixes to output files (including time)
 
 This is ideal wrapper to be added as a cronjob.
 
