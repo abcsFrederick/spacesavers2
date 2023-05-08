@@ -23,7 +23,6 @@ EOF
 conda activate py311
 export PATH=${SCRIPT_DIR}:$PATH
 
-outfile=$(echo "${INFOLDER}.ls_out"|sed "s/\//_/g")
 if [ "$SLURM_JOB_ID" == "" ]; then 
     tmpdir="$OUTFOLDER"
 else
@@ -31,6 +30,12 @@ else
 fi
 
 # run spacesavers2
+dt=$(date +%Y%d%m)
+prefix=$(echo "${dt}.${INFOLDER}"|sed "s/\//_/g")
+outfile_ls="${prefix}.ls_out"
+outfile_finddup_log="${prefix}.finddup_log"
+outfile_finddup_err="${prefix}.finddup_log"
+
 if [ ! -d $OUTFOLDER ];then mkdir -p $OUTFOLDER;fi && \
-spacesavers2_ls -f $INFOLDER -p $THREADS -e > ${OUTFOLDER}/${outfile} && \
-spacesavers2_finddup -f ${OUTFOLDER}/${outfile} -o ${OUTFOLDER} -q $QUOTA -z -d 3 > ${OUTFOLDER}/${outfile%.*}.finddup.log
+spacesavers2_ls -f $INFOLDER -p $THREADS -e > ${OUTFOLDER}/${outfile_ls} && \
+spacesavers2_finddup -f ${OUTFOLDER}/${outfile_ls} -o ${OUTFOLDER} -q $QUOTA -z -d 3 -p $prefix > ${OUTFOLDER}/${outfile_finddup_log} 2> ${OUTFOLDER}/${outfile_finddup_err}
