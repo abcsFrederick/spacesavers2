@@ -119,6 +119,9 @@ def main():
             for p in fd.get_paths_at_all_depths():
                 paths.add(p)
             hash = fd.xhash_top + "#" + fd.xhash_bottom
+            if hash == "#": # happens when file cannot be read
+                sys.stderr.write("Cannot read file listed in ls_out and will be excluded from finddup: {} \n".format(fd.apath))
+                continue
             if not hash in hashhash: hashhash[hash] = dfUnit(hash)
             hashhash[hash].add_fd(fd)
     min_path_len = min(path_lens)
