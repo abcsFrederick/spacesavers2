@@ -89,22 +89,25 @@ class FileDetails:
             sys.stderr.write("File cannot be read:{}\n".format(str(self.apath)))
 
     def set(self,ls_line):
-        ls_line         = ls_line.strip().strip(";").replace("\"","").split(";")
-        self.xhash_bottom   = ls_line.pop(-1)
-        self.xhash_top      = ls_line.pop(-1)
-        self.gid        = int(ls_line.pop(-1))
-        self.uid        = int(ls_line.pop(-1))
-        self.ctime      = int(ls_line.pop(-1))
-        self.mtime      = int(ls_line.pop(-1)) 
-        self.atime      = int(ls_line.pop(-1))
-        self.nlink      = int(ls_line.pop(-1))
-        self.inode      = int(ls_line.pop(-1))
-        self.dev        = int(ls_line.pop(-1))
-        self.size       = int(ls_line.pop(-1))
-        issyml = ls_line.pop(-1)
-        self.issyml     = issyml == 'True'
-        self.apath      = Path(";".join(ls_line))         # sometimes filename have ";" in them ... hence this!
-                    
+        try:
+            ls_line         = ls_line.strip().replace("\"","").split(";")[:-1]
+            self.xhash_bottom   = ls_line.pop(-1)
+            self.xhash_top      = ls_line.pop(-1)
+            self.gid        = int(ls_line.pop(-1))
+            self.uid        = int(ls_line.pop(-1))
+            self.ctime      = int(ls_line.pop(-1))
+            self.mtime      = int(ls_line.pop(-1)) 
+            self.atime      = int(ls_line.pop(-1))
+            self.nlink      = int(ls_line.pop(-1))
+            self.inode      = int(ls_line.pop(-1))
+            self.dev        = int(ls_line.pop(-1))
+            self.size       = int(ls_line.pop(-1))
+            issyml = ls_line.pop(-1)
+            self.issyml     = issyml == 'True'
+            self.apath      = Path(";".join(ls_line))         # sometimes filename have ";" in them ... hence this!
+        except:
+            sys.stderr.write("ls_out reading failed at line:{0} with {1} elements.\n".format(ls_line,len(ls_line)))
+            exit()            
     
     def str_with_name(self,uid2uname,gid2gname):# method for printing output in finddup ... replace "xhash_top;xhash_bottom" with "username;groupname" at the end of the string
         return_str = "\"%s\";"%(self.apath)
