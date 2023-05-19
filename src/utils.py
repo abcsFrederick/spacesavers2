@@ -49,5 +49,9 @@ def get_folder_depth(path):
     return len(list(path.parents))
 
 def get_file_depth(path):
-    return len(list(path.parents))-1
+    try:
+        return len(list(path.parents))-1
+    except:
+        print("get_file_depth error for file:\"{}\", type:{}".format(path,type(path)))
+        exit()
 
