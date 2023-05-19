@@ -68,10 +68,10 @@ def main():
     Version: 
         {}
     Example: 
-        % spacesavers2_finddup -f /output/from/spacesavers2_ls -o /path/to/output/folder -d 7 -q 10
+        > spacesavers2_finddup -f /output/from/spacesavers2_ls -o /path/to/output/folder -d 7 -q 10
         """.format(__version__)) 
     parser = argparse.ArgumentParser(description="spacesavers2_finddup: find duplicates",
-                                     epilog=elog)
+                                     epilog=elog,formatter_class=argparse.RawDescriptionHelpFormatter)
     
     parser.add_argument("-f","--lsout",dest="lsout",required=True,type=str,default=sys.stdin,
         help="spacesavers2_ls output from STDIN or from file")
@@ -107,11 +107,13 @@ def main():
     groups = set()      # list of groups
     paths = set()
     path_lens = []
-    print_with_timestamp("Reading in ls_out file...")       
+    print_with_timestamp("Reading in ls_out file...")
+    set_complete=True       
     with open(args.lsout) as lsout:
         for l in lsout:
             fd = FileDetails()
-            fd.set(l)
+            set_complete=fd.set(l)
+            if not set_complete: continue
             if fd.issyml: continue          # ignore all symlinks
             users.add(fd.uid)
             groups.add(fd.gid)
@@ -158,9 +160,9 @@ def main():
     for uid in users:
         print_with_timestamp("Gathering stats for user: %s"%(uid2uname[uid]))
         if args.prefix != "":
-            outfilenameprefix = args.prefix + "." + get_username_groupname(uid)+".files.gz"
+            outfilenameprefix = args.prefix + "." + get_username_groupname(uid)
         else:
-            outfilenameprefix = get_username_groupname(uid)+".files.gz"
+            outfilenameprefix = get_username_groupname(uid)
         with gzip.open(os.path.join(os.path.abspath(args.outdir),outfilenameprefix + ".files.gz"),'wt') as user_output, open(os.path.join(os.path.abspath(args.outdir),outfilenameprefix + ".summary.txt"),'w') as user_summary:
             peruser_perfolder_summaries = dict()
             for p in paths:

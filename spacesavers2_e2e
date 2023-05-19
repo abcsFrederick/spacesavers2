@@ -30,7 +30,7 @@ else
 fi
 
 # run spacesavers2
-dt=$(date +%Y%d%m)
+dt=$(date +%Y%m%d)
 prefix=$(echo "${dt}.${INFOLDER}"|sed "s/\//_/g")
 outfile_ls="${prefix}.ls_out"
 outfile_ls_err="${prefix}.ls_err"
