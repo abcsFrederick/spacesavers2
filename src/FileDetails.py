@@ -109,9 +109,11 @@ class FileDetails:
             issyml = ls_line.pop(-1)
             self.issyml     = issyml == 'True'
             self.apath      = Path(";".join(ls_line))         # sometimes filename have ";" in them ... hence this!
+            return True
         except:
             sys.stderr.write("spacesavers2:{0}:ls_out Do not understand line:\"{1}\" with {2} elements.\n".format(self.__class__.__name__,original_ls_line,len(ls_line)))
             # exit()            
+            return False
     
     def str_with_name(self,uid2uname,gid2gname):# method for printing output in finddup ... replace "xhash_top;xhash_bottom" with "username;groupname" at the end of the string
         return_str = "\"%s\";"%(self.apath)
