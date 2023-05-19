@@ -68,10 +68,10 @@ def main():
     Version: 
         {}
     Example: 
-        % spacesavers2_finddup -f /output/from/spacesavers2_ls -o /path/to/output/folder -d 7 -q 10
+        > spacesavers2_finddup -f /output/from/spacesavers2_ls -o /path/to/output/folder -d 7 -q 10
         """.format(__version__)) 
     parser = argparse.ArgumentParser(description="spacesavers2_finddup: find duplicates",
-                                     epilog=elog)
+                                     epilog=elog,formatter_class=argparse.RawDescriptionHelpFormatter)
     
     parser.add_argument("-f","--lsout",dest="lsout",required=True,type=str,default=sys.stdin,
         help="spacesavers2_ls output from STDIN or from file")
