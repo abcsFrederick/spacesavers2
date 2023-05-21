@@ -54,16 +54,11 @@ def process_hh(uid,hashhash,hashhashsplits,mindepth,maxdepth,uid2uname,gid2gname
         else:
             user_output.write("{}\n".format(hashhash[h].str_with_name(uid2uname,gid2gname,uid_file_index)))
 
-def get_timestamp():
-    e = time.time()
-    return "%08.2fs"%(e-start)
 
-def print_with_timestamp(s):
-    sys.stdout.write("spacesavers2_finddup:{}:{}\n".format(get_timestamp(),s))
 
 def main():
-    global start
     start = time.time()
+    scriptname = os.path.basename(__file__)
     elog=textwrap.dedent("""\
     Version: 
         {}
@@ -91,13 +86,12 @@ def main():
     parser.add_argument('-z',"--duplicatesonly",dest="duplicatesonly",required=False,action=argparse.BooleanOptionalAction,
         help="Print only duplicates to per user output file.")
 
-    print_with_timestamp("version: {}".format(__version__))
+    print_with_timestamp(start=start,scriptname=scriptname,string="version: {}".format(__version__))
 
     global args
     args = parser.parse_args()
     quota = args.quota * 1024 * 1024 * 1024 * 1024
 
-    check_writeable_folder(args.outdir)
     
     uid2uname = dict()
     gid2gname = dict()
@@ -107,7 +101,7 @@ def main():
     groups = set()      # list of groups
     paths = set()
     path_lens = []
-    print_with_timestamp("Reading in ls_out file...")
+    print_with_timestamp(start=start,scriptname=scriptname,string="Reading in ls_out file...")
     set_complete=True       
     with open(args.lsout) as lsout:
         for l in lsout:
@@ -152,13 +146,13 @@ def main():
         uid2uname[uid] = get_username_groupname(uid)
     for gid in groups:
         gid2gname[gid] = get_username_groupname(gid)
-    print_with_timestamp("Done reading in ls_out file!")
-    print_with_timestamp("Total Number of paths: %d"%len(paths))
-    print_with_timestamp("Total Number of users: %d"%len(users))
+    print_with_timestamp(start=start,scriptname=scriptname,string="Done reading in ls_out file!")
+    print_with_timestamp(start=start,scriptname=scriptname,string="Total Number of paths: %d"%len(paths))
+    print_with_timestamp(start=start,scriptname=scriptname,string="Total Number of users: %d"%len(users))
 
 
     for uid in users:
-        print_with_timestamp("Gathering stats for user: %s"%(uid2uname[uid]))
+        print_with_timestamp(start=start,scriptname=scriptname,string="Gathering stats for user: %s"%(uid2uname[uid]))
         if args.prefix != "":
             outfilenameprefix = args.prefix + "." + get_username_groupname(uid)
         else:
@@ -178,7 +172,7 @@ def main():
     del hashhash
     del hashhashsplits
     del hashhashsplitsdummy
-    print_with_timestamp("Finished!")
+    print_with_timestamp(start=start,scriptname=scriptname,string="Finished!")
 
 
 if __name__ == '__main__': main()
