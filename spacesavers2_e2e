@@ -17,11 +17,8 @@ parser.add_argument('-q','--quota',required=False, help='total size of the volum
 parser.add_argument('-o','--outfolder',required=True, help='Folder where all spacesavers_finddup output files will be saved')
 EOF
 
-# ensure that python 3.11, python library xxhash and gnuparallel are in path
-# this is currently biowulf specific but can be replaced to your case
-. "/data/CCBR_Pipeliner/db/PipeDB/Conda/etc/profile.d/conda.sh"
-conda activate py311
-export PATH=${SCRIPT_DIR}:$PATH
+# assuming that python 3.11 is available with xxhash module
+# . "/data/CCBR_Pipeliner/db/PipeDB/Conda/etc/profile.d/conda.sh" && conda activate py311
 
 if [ "$SLURM_JOB_ID" == "" ]; then 
     tmpdir="$OUTFOLDER"
@@ -37,6 +34,21 @@ outfile_ls_err="${prefix}.ls_err"
 outfile_finddup_log="${prefix}.finddup_log"
 outfile_finddup_err="${prefix}.finddup_err"
 
-if [ ! -d $OUTFOLDER ];then mkdir -p $OUTFOLDER;fi && \
-spacesavers2_ls -f $INFOLDER -p $THREADS -e > ${OUTFOLDER}/${outfile_ls} 2> ${OUTFOLDER}/${outfile_ls_err} && \
+if [ ! -d $OUTFOLDER ];then mkdir -p $OUTFOLDER;fi
+if [ "$?" == "0" ];then
+echo "Running spacesavers2_ls" && \
+spacesavers2_ls -f $INFOLDER -p $THREADS -e > ${OUTFOLDER}/${outfile_ls} 2> ${OUTFOLDER}/${outfile_ls_err}
+fi
+if [ "$?" == "0" ];then
+echo "Running spacesavers2_finddup" && \
 spacesavers2_finddup -f ${OUTFOLDER}/${outfile_ls} -o ${OUTFOLDER} -q $QUOTA -z -d 3 -p $prefix > ${OUTFOLDER}/${outfile_finddup_log} 2> ${OUTFOLDER}/${outfile_finddup_err}
+fi
+if [ "$?" == "0" ];then
+echo "Running spacesavers2_grubbers" && \
+for f in `ls ${OUTFOLDER}/${prefix}*files.gz`;do
+    outfile=`echo $f|sed "s/files.gz/grubbers.tsv/g"`
+    errfile=`echo $f|sed "s/files.gz/grubbers.err/g"`
+    spacesavers2_grubbers -f $f > $outfile 2> $errfile
+done
+fi
+echo "Done!"
