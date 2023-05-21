@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 import shlex
 import subprocess
+import sys
+import time
 
 def which(program):
     def is_exe(fpath):
@@ -27,8 +29,12 @@ def check_writeable_folder(folder):
     if not os.access(folder,os.W_OK):
         exit("ERROR: {} folder exists but cannot be written to".format(folder))
 
-def check_readable_file(file):
-    return os.access(file,os.R_OK)
+def check_readable_file(filename):
+    if os.access(filename,os.R_OK):
+        return True
+    else:
+        exit("ERROR: Cannot read file:{}".format(filename))
+
 
 def get_username_groupname(id):
     if id == 0: return "allusers"
@@ -55,3 +61,27 @@ def get_file_depth(path):
         print("get_file_depth error for file:\"{}\", type:{}".format(path,type(path)))
         exit()
 
+def get_timestamp(start):
+    e = time.time()
+    return "%08.2fs"%(e-start)
+
+def print_with_timestamp(start,string,scriptname=os.path.basename(__file__)):
+    sys.stdout.write("{0}:{1}:{2}\n".format(scriptname,get_timestamp(start),string))
+
+def get_human_readable_size(bytes):
+    hr = str(bytes) + " B"
+    kb = float(bytes)/1024.0
+    if kb > 1024:
+        mb = kb/1024.0
+        if mb > 1024:
+            gb = mb/1024.0
+            if gb > 1024:
+                    tb = gb/1024.0
+                    hr = "{0:.2f} TiB".format(tb)
+            else:
+                hr = hr = "{0:.2f} GiB".format(gb)
+        else:
+            hr = hr = "{0:.2f} MiB".format(mb)
+    else:
+        hr = "{0:.2f} KiB".format(kb)
+    return hr
