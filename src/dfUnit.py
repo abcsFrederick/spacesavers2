@@ -1,4 +1,13 @@
-import numpy
+import sys
+from .utils import *
+
+def get_filename_from_fgzlistitem(string):
+    string = string.strip().split(";")[:-1]
+    for i in range(9):
+        dummy = string.pop(-1)
+    filename = ";".join(string)
+    return filename
+
 
 class dfUnit:
     def __init__(self,hash):
@@ -13,6 +22,7 @@ class dfUnit:
         self.oldest_index   = -1
         self.oldest_age     = -1
         self.oldest_uid     = -1
+
     
     def add_fd(self,fd):
         # add the file to flist
@@ -67,3 +77,53 @@ class dfUnit:
         
     def str_with_name(self,uid2uname, gid2gname,findex):
         return "{0} : {1} {2} {3}".format(self.hash, self.ndup, self.fsize,"##".join(map(lambda x:x.str_with_name(uid2uname,gid2gname),[self.flist[i] for i in findex])))
+
+
+class fgz:
+    def __init__(self):
+        self.hash = ""
+        self.ndup = -1
+        self.filesize = -1
+        self.totalsize = -1
+        self.fds = []
+    
+    def __lt__(self,other):
+        return self.totalsize > other.totalsize
+    
+    def __str__(self):
+        outstring=[]
+        outstring.append(str(self.hash))
+        outstring.append(str(self.ndup))
+        outstring.append(get_human_readable_size(self.totalsize))
+        outstring.append(get_human_readable_size(self.filesize))
+        outstring.append(";".join(map(lambda x:get_filename_from_fgzlistitem(x),self.fds)))
+        return "\t".join(outstring)
+        # return "{0} {1} {2} {3} {4}".format(self.hash,self.ndup,get_human_readable_size(self.totalsize), get_human_readable_size(self.filesize), ";".join(map(lambda x:get_filename_from_fgzlistitem(x),self.fds)))
+        # return "{0} {1} {2} {3} {4}".format(self.hash,self.ndup,self.totalsize, self.filesize, ";".join(map(lambda x:get_filename_from_fgzlistitem(x),self.fds)))
+
+# 09f9599cff76f6c82a96b042d67f81ff#09f9599cff76f6c82a96b042d67f81ff : 158 1348 "/data/CCBR/projects/ccbr583/Pipeliner/.git/hooks/pre-push.sample";1348;41;8081532070425347857;1;1552;35069;57786;jailwalapa;CCBR;##"/data/CCBR/projects/ccbr785/FREEC/.git/hooks/pre-push.sample";1348;41;11610558684702129747;1;1629;35069;57786;jailwalapa;CCBR;##"/data/CCBR/projects/ccbr785/citup/pypeliner/.git/hooks/pre-push.sample";1348;41;9306919632329364056;1;1624;35069;57786;jailwalapa;CCBR;##"/data/CCBR/projects/ccbr785/titan_workflow/.git/hooks/pre-push.sample";1348;41;7658100918611057517;1;1628;35069;57786;jailwalapa;CCBR;##"/data/CCBR/rawdata/ccbr1016/batch1/fastq/scratch/example/Pipeliner/.git/hooks/pre-push.sample";1348;41;328973360624494807;1;1253;35069;57786;jailwalapa;CCBR;##"/data/CCBR/rawdata/ccbr1040/Seq2n3n4n5_GEXnHTO/Pipeliner/.git/hooks/pre-push.sample";1348;41;16190385205193530167;1;1093;35069;57786;jailwalapa;CCBR;##"/data/CCBR/rawdata/ccbr1044/Pipeliner/.git/hooks/pre-push.sample";1348;41;10429578581567757002;1;1110;35069;57786;jailwalapa;CCBR;    
+    def set(self,inputline):
+        original_line = inputline
+        try:
+            inputline = inputline.strip().split(" ")
+            if len(inputline) < 5:
+                raise Exception("Less than 5 items in the line.")
+            self.hash = inputline.pop(0)
+            dummy = inputline.pop(0)
+            total_ndup = int(inputline.pop(0))
+            if total_ndup == 0: # may be finddup was run to output all files .. not just dups
+                return False
+            self.filesize = int(inputline.pop(0))
+            full_fds = " ".join(inputline)
+            fds = full_fds.split("##")
+            self.ndup = len(fds) # these are user number of duplicates/files
+            if self.ndup == (total_ndup + 1): # one file is the original ... other are all duplicates
+                dummy = fds.pop(0)
+                self.ndup -= 1
+            self.fds = fds
+            self.totalsize = self.ndup * self.filesize
+            return True
+        except:
+            sys.stderr.write("spacesavers2:{0}:files.gz Do not understand line:{1} with {2} elements.\n".format(self.__class__.__name__,original_line,len(inputline)))
+            # exit()            
+            return False
