@@ -31,10 +31,10 @@ def main():
     Version: 
         {}
     Example: 
-        % spacesavers2_ls -f /path/to/folder -p 56 -e
+        > spacesavers2_ls -f /path/to/folder -p 56 -e
         """.format(__version__))    
     parser = argparse.ArgumentParser(description="spacesavers2_ls: get per file info.", 
-                                     epilog=elog)
+                                     epilog=elog,formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-f","--folder",dest="folder",required=True,type=str,
     help="spacesavers2_ls will be run on all files in this folder and its subfolders")
     parser.add_argument("-p","--threads",dest="threads",required=False,type=int, default=4,

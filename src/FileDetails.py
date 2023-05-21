@@ -86,25 +86,34 @@ class FileDetails:
                         self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
                         self.xhash_bottom = self.xhash_top
         except:
-            sys.stderr.write("File cannot be read:{}\n".format(str(self.apath)))
+            sys.stderr.write("spacesavers2:{}:File cannot be read:{}\n".format(self.__class__.__name__,str(self.apath)))
 
     def set(self,ls_line):
-        ls_line         = ls_line.strip().strip(";").replace("\"","").split(";")
-        self.xhash_bottom   = ls_line.pop(-1)
-        self.xhash_top      = ls_line.pop(-1)
-        self.gid        = int(ls_line.pop(-1))
-        self.uid        = int(ls_line.pop(-1))
-        self.ctime      = int(ls_line.pop(-1))
-        self.mtime      = int(ls_line.pop(-1)) 
-        self.atime      = int(ls_line.pop(-1))
-        self.nlink      = int(ls_line.pop(-1))
-        self.inode      = int(ls_line.pop(-1))
-        self.dev        = int(ls_line.pop(-1))
-        self.size       = int(ls_line.pop(-1))
-        issyml = ls_line.pop(-1)
-        self.issyml     = issyml == 'True'
-        self.apath      = Path(";".join(ls_line))         # sometimes filename have ";" in them ... hence this!
-                    
+        original_ls_line=ls_line
+        # print(ls_line)
+        try:
+            ls_line         = ls_line.strip().replace("\"","").split(";")[:-1]
+            if len(ls_line) < 13:
+                raise Exception("Less than 13 items in the line.")
+            self.xhash_bottom   = ls_line.pop(-1)
+            self.xhash_top      = ls_line.pop(-1)
+            self.gid        = int(ls_line.pop(-1))
+            self.uid        = int(ls_line.pop(-1))
+            self.ctime      = int(ls_line.pop(-1))
+            self.mtime      = int(ls_line.pop(-1)) 
+            self.atime      = int(ls_line.pop(-1))
+            self.nlink      = int(ls_line.pop(-1))
+            self.inode      = int(ls_line.pop(-1))
+            self.dev        = int(ls_line.pop(-1))
+            self.size       = int(ls_line.pop(-1))
+            issyml = ls_line.pop(-1)
+            self.issyml     = issyml == 'True'
+            self.apath      = Path(";".join(ls_line))         # sometimes filename have ";" in them ... hence this!
+            return True
+        except:
+            sys.stderr.write("spacesavers2:{0}:ls_out Do not understand line:\"{1}\" with {2} elements.\n".format(self.__class__.__name__,original_ls_line,len(ls_line)))
+            # exit()            
+            return False
     
     def str_with_name(self,uid2uname,gid2gname):# method for printing output in finddup ... replace "xhash_top;xhash_bottom" with "username;groupname" at the end of the string
         return_str = "\"%s\";"%(self.apath)
