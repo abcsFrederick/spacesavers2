@@ -5,3 +5,5 @@
 **/slurm-*
 # mkdocs documentation
 /site
+**/test.py
+**/test/
