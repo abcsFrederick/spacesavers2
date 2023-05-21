@@ -4,7 +4,6 @@ import shlex
 import subprocess
 import sys
 import time
-from .config import * 
 
 def which(program):
     def is_exe(fpath):
