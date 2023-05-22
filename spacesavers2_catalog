@@ -46,7 +46,7 @@ def main():
     parser.add_argument('-s',"--se",dest="se",required=False,type=str,default='bam,bai,bigwig,bw,csi',
         help="comma separated list of special extentions") 
     parser.add_argument('-o',"--outfile",dest="outfile",required=False,type=str,
-        help="outfile ls_out file .. by default output is printed to screen") 
+        help="outfile ... catalog file .. by default output is printed to screen") 
     parser.add_argument('-e',"--bottomhash",dest="bottomhash",required=False,action=argparse.BooleanOptionalAction,
         help="separately calculated second hash for the bottom/end of the file.") 
 

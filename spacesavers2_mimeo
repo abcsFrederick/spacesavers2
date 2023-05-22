@@ -68,8 +68,8 @@ def main():
     parser = argparse.ArgumentParser(description="spacesavers2_mimeo: find duplicates",
                                      epilog=elog,formatter_class=argparse.RawDescriptionHelpFormatter)
     
-    parser.add_argument("-f","--lsout",dest="lsout",required=True,type=str,default=sys.stdin,
-        help="spacesavers2_catalog output from STDIN or from file")
+    parser.add_argument("-f","--catalog",dest="lsout",required=True,type=str,default=sys.stdin,
+        help="spacesavers2_catalog output from STDIN or from catalog file")
 
     parser.add_argument("-d","--maxdepth",dest="maxdepth",required=False,type=int,default=10,
         help="folder max. depth upto which reports are aggregated")

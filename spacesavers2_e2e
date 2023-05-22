@@ -11,10 +11,10 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 ARGPARSE_DESCRIPTION="End-to-end run of spacesavers2"
 source ${SCRIPT_DIR}/resources/argparse.bash || exit 1
 argparse "$@" <<EOF || exit 1
-parser.add_argument('-i','--infolder',required=True, help='Folder to run spacesavers_ls on.')
+parser.add_argument('-i','--infolder',required=True, help='Folder to run spacesavers_catalog on.')
 parser.add_argument('-p','--threads',required=False, help='number of threads to use', default=4)
 parser.add_argument('-q','--quota',required=False, help='total size of the volume (default = 200 for /data/CCBR)', default=200)
-parser.add_argument('-o','--outfolder',required=True, help='Folder where all spacesavers_finddup output files will be saved')
+parser.add_argument('-o','--outfolder',required=True, help='Folder where all spacesavers_mimeo output files will be saved')
 EOF
 
 # assuming that python 3.11 is available with xxhash module
@@ -29,19 +29,19 @@ fi
 # run spacesavers2
 dt=$(date +%Y%m%d)
 prefix=$(echo "${dt}.${INFOLDER}"|sed "s/\//_/g")
-outfile_ls="${prefix}.ls_out"
-outfile_ls_err="${prefix}.ls_err"
-outfile_finddup_log="${prefix}.finddup_log"
-outfile_finddup_err="${prefix}.finddup_err"
+outfile_catalog="${prefix}.catalog"
+outfile_catalog_err="${prefix}.catalog_err"
+outfile_mimeo_log="${prefix}.mimeo_log"
+outfile_mimeo_err="${prefix}.mimeo_err"
 
 if [ ! -d $OUTFOLDER ];then mkdir -p $OUTFOLDER;fi
 if [ "$?" == "0" ];then
-echo "Running spacesavers2_ls" && \
-spacesavers2_ls -f $INFOLDER -p $THREADS -e > ${OUTFOLDER}/${outfile_ls} 2> ${OUTFOLDER}/${outfile_ls_err}
+echo "Running spacesavers2_catalog" && \
+spacesavers2_catalog -f $INFOLDER -p $THREADS -e > ${OUTFOLDER}/${outfile_catalog} 2> ${OUTFOLDER}/${outfile_catalog_err}
 fi
 if [ "$?" == "0" ];then
-echo "Running spacesavers2_finddup" && \
-spacesavers2_finddup -f ${OUTFOLDER}/${outfile_ls} -o ${OUTFOLDER} -q $QUOTA -z -d 3 -p $prefix > ${OUTFOLDER}/${outfile_finddup_log} 2> ${OUTFOLDER}/${outfile_finddup_err}
+echo "Running spacesavers2_mimeo" && \
+spacesavers2_mimeo -f ${OUTFOLDER}/${outfile_catalog} -o ${OUTFOLDER} -q $QUOTA -z -d 3 -p $prefix > ${OUTFOLDER}/${outfile_mimeo_log} 2> ${OUTFOLDER}/${outfile_mimeo_err}
 fi
 if [ "$?" == "0" ];then
 echo "Running spacesavers2_grubbers" && \
