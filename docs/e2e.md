@@ -1,9 +1,12 @@
 ## spacesavers2_e2e
 
-This is a wrapper to run `spacesavers2_ls` followed by `spacesavers2_finddup`. It automatically:
+This is a wrapper to run all the `spacesavers2` commands in the correct order. It automatically:
 
-- loads appropriate env on BIOWULF
 - adds appropriate prefixes to output files (including time)
+- catalogs files in the folder provided
+- finds duplicates
+- finds high-value duplicates
+- creates blamematrix
 
 This is ideal wrapper to be added as a cronjob.
 
