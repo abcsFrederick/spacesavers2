@@ -85,3 +85,13 @@ def get_human_readable_size(bytes):
     else:
         hr = "{0:.2f} KiB".format(kb)
     return hr
+
+def get_folder_at_depth(path,depth):
+    if get_folder_depth(path.parents[0]) < depth:
+        return path.parents[0]
+    for p in path.parents:
+        current_depth = get_folder_depth(p)
+        if current_depth == depth:
+            return p
+    else:
+        return path.parents[0]

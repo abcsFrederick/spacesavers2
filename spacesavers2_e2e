@@ -51,4 +51,8 @@ for f in `ls ${OUTFOLDER}/${prefix}*files.gz`;do
     spacesavers2_grubbers -f $f > $outfile 2> $errfile
 done
 fi
+if [ "$?" == "0" ];then
+echo "Running spacesavers2_blamematrix" && \
+spacesavers2_blamematrix -f ${OUTFOLDER}/${prefix}.allusers.files.gz > ${OUTFOLDER}/${prefix}.blamematrix.tsv 2> ${OUTFOLDER}/${prefix}.blamematrix.err
+fi
 echo "Done!"
