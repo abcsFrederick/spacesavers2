@@ -94,6 +94,8 @@ nav:
   - Usage: 
     - ls: ls.md
     - finddup: finddup.md
+    - grubbers: grubbers.md
+    - blamematrix: blamematrix.md
     - e2e: e2e.md
 
 
