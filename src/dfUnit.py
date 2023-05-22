@@ -79,7 +79,7 @@ class dfUnit:
         return "{0} : {1} {2} {3}".format(self.hash, self.ndup, self.fsize,"##".join(map(lambda x:x.str_with_name(uid2uname,gid2gname),[self.flist[i] for i in findex])))
 
 
-class fgz:
+class fgz: # used by grubber
     def __init__(self):
         self.hash = ""
         self.ndup = -1
@@ -122,6 +122,85 @@ class fgz:
                 self.ndup -= 1
             self.fds = fds
             self.totalsize = self.ndup * self.filesize
+            return True
+        except:
+            sys.stderr.write("spacesavers2:{0}:files.gz Do not understand line:{1} with {2} elements.\n".format(self.__class__.__name__,original_line,len(inputline)))
+            # exit()            
+            return False
+
+
+class FileDetails2:
+    def __init__(self):
+        self.apath = ""
+        self.size = -1
+        self.dev = -1
+        self.inode = -1
+        self.nlink = -1
+        self.mtime = -1
+        self.uid = -1
+        self.gid = -1
+        self.uname = ""
+        self.gname = ""
+    
+    def set(self,fgzline):
+        original_fgzline=fgzline
+        # print(ls_line)
+        try:
+            fgzline         = fgzline.strip().replace("\"","").split(";")[:-1]
+            if len(fgzline) < 10:
+                raise Exception("Less than 10 items in the line.")
+            self.gname      = fgzline.pop(-1)
+            self.uname      = fgzline.pop(-1)
+            self.gid        = int(fgzline.pop(-1))
+            self.uid        = int(fgzline.pop(-1))
+            self.mtime      = int(fgzline.pop(-1)) 
+            self.nlink      = int(fgzline.pop(-1))
+            self.inode      = int(fgzline.pop(-1))
+            self.dev        = int(fgzline.pop(-1))
+            self.size       = int(fgzline.pop(-1))
+            apath           = ";".join(fgzline)
+            apath           = apath.strip("\"")
+            self.apath      = Path(apath)         # sometimes filename have ";" in them ... hence this!
+            return True
+        except:
+            sys.stderr.write("spacesavers2:{0}:ls_out Do not understand line:\"{1}\" with {2} elements.\n".format(self.__class__.__name__,original_fgzline,len(fgzline)))
+            # exit()            
+            return False        
+
+class fgzblamer: # used by blamematrix
+    def __init__(self):
+        self.hash = ""
+        self.ndup = -1
+        self.users = set()
+        self.folders = set()
+        self.bm = dict()
+        self.fds = []
+    
+    def set(self,inputline,depth):
+        original_line = inputline
+        try:
+            inputline = inputline.strip().split(" ")
+            if len(inputline) < 5:
+                raise Exception("Less than 5 items in the line.")
+            self.hash = inputline.pop(0)
+            dummy = inputline.pop(0)
+            self.ndup = int(inputline.pop(0))
+            if self.ndup == 0 or self.ndup == 1: return False                       
+            self.filesize = int(inputline.pop(0))
+            full_fds = " ".join(inputline)
+            fds = full_fds.split("##")
+            for f in fds:
+                fd = FileDetails2()
+                fd.set(f)
+                self.users.add(fd.uname)
+                fad=get_folder_at_depth(fd.apath,depth)
+                self.folders.add(fad)
+                if not fd.uname in self.bm:
+                    self.bm[fd.uname] = dict()
+                if not fad in self.bm[fd.uname]:
+                    self.bm[fd.uname][fad] = 0
+                self.bm[fd.uname][fad] += self.filesize
+            self.fds = []
             return True
         except:
             sys.stderr.write("spacesavers2:{0}:files.gz Do not understand line:{1} with {2} elements.\n".format(self.__class__.__name__,original_line,len(inputline)))
