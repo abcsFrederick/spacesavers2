@@ -26,7 +26,7 @@ For each file it also computes a unique hash (using xxHash library) for:
 > NOTE: `spacesavers2_ls` reports errors (eg. cannot read file) to STDERR
 
 ```bash
- % spacesavers2_ls --help
+% ./spacesavers2_ls --help
 usage: spacesavers2_ls [-h] -f FOLDER [-p THREADS] [-b BUFFERSIZE] [-i IGNOREHEADERSIZE] [-s SE] [-o OUTFILE] [-e | --bottomhash | --no-bottomhash]
 
 spacesavers2_ls: get per file info.
@@ -47,7 +47,10 @@ options:
   -e, --bottomhash, --no-bottomhash
                         separately calculated second hash for the bottom/end of the file.
 
-Version: v0.3 Example: % spacesavers2_ls -f /path/to/folder -p 56 -e
+Version:
+    v0.5
+Example:
+    > spacesavers2_ls -f /path/to/folder -p 56 -e
 ```
 
 ### Output
@@ -77,4 +80,4 @@ The 13 items in the line are as follows:
 | 12     | top chunk xxHash         | 4707e661a1f3beca1861b9e0e0177461                                                               |
 | 13     | bottom chunk xxHash      | 52e5038016c3dce5b6cdab635765cc79                                                               |
 
-> NOTE: Some files may have ";" in their name, hence adding quotes around the absolute file path.
+> NOTE: Some files may have ";" or spaces in their name, hence adding quotes around the absolute file path.

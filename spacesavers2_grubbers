@@ -30,7 +30,7 @@ def main():
                                      epilog=elog,formatter_class=argparse.RawDescriptionHelpFormatter)
     
     parser.add_argument("-f","--filesgz",dest="filesgz",required=True,type=str,default=sys.stdin,
-        help="spacesavers2_ls output from STDIN or from file")
+        help="spacesavers2_finddup prefix.<user>.files.gz file")
     parser.add_argument("-l","--limit",dest="limit",required=False,type=int,default=5,
         help="stop showing duplicates with total size smaller then (5 default) GiB")
 
