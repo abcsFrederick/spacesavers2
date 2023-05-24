@@ -71,7 +71,6 @@ def main():
                 hrsize = '0'
             print("\t{}".format(hrsize),end='')
         print("")
-
     print_with_timestamp(start=start,scriptname=scriptname,string="Done!")
 
 
