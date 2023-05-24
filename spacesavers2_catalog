@@ -31,12 +31,12 @@ def main():
     Version: 
         {}
     Example: 
-        > spacesavers2_ls -f /path/to/folder -p 56 -e
+        > spacesavers2_catalog -f /path/to/folder -p 56 -e
         """.format(__version__))    
-    parser = argparse.ArgumentParser(description="spacesavers2_ls: get per file info.", 
+    parser = argparse.ArgumentParser(description="spacesavers2_catalog: get per file info.", 
                                      epilog=elog,formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-f","--folder",dest="folder",required=True,type=str,
-    help="spacesavers2_ls will be run on all files in this folder and its subfolders")
+    help="spacesavers2_catalog will be run on all files in this folder and its subfolders")
     parser.add_argument("-p","--threads",dest="threads",required=False,type=int, default=4,
     help="number of threads to be used")
     parser.add_argument('-b',"--buffersize",dest="buffersize",required=False,type=int,default=128*1024,
@@ -46,7 +46,7 @@ def main():
     parser.add_argument('-s',"--se",dest="se",required=False,type=str,default='bam,bai,bigwig,bw,csi',
         help="comma separated list of special extentions") 
     parser.add_argument('-o',"--outfile",dest="outfile",required=False,type=str,
-        help="outfile ls_out file .. by default output is printed to screen") 
+        help="outfile ... catalog file .. by default output is printed to screen") 
     parser.add_argument('-e',"--bottomhash",dest="bottomhash",required=False,action=argparse.BooleanOptionalAction,
         help="separately calculated second hash for the bottom/end of the file.") 
 

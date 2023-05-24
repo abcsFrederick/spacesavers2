@@ -1,4 +1,4 @@
-## spacesavers2_ls
+## spacesavers2_catalog
 
 This uses `glob` library to list all files in a user-provided folder recursively. 
 
@@ -15,26 +15,26 @@ For each file it also computes a unique hash (using xxHash library) for:
  - bottom chunk of the file (`-e` option)
 
 ### Inputs
- - `--folder`: Path to the folder to run `spacesavers2_ls` on.
- - `--threads`: `spacesavers2_ls` uses multiprocessing library to parallelize orchestration. This defines the number of threads to run in parallel.
+ - `--folder`: Path to the folder to run `spacesavers2_catalog` on.
+ - `--threads`: `spacesavers2_catalog` uses multiprocessing library to parallelize orchestration. This defines the number of threads to run in parallel.
  - `--buffersize`: This defines the size of the top (or bottom) chunk of the file to be used to by xxHash. (default 128 KB)
  - `--ignoreheadersize`: This defines the size of the top of the file to be **ignored** before reading the top chunk for xxHash calculation. This is useful for ignore the header portion of files like BAM or BIGWIG which may have the same top chunk (Eg. samples aligned to the same reference index will generate BAMs with the same header hence original `spacesaver`, which only looks at the top chunk, may call them duplicates. `spacesavers2` tries to do a better job at this.). (default 1 MB)
  - `--se`: Comma-separated special extensions for home `spacesavers2` ignores the headers before extracting the top chunk for xxHash calculation. The default is "bam,bai,bigwig,bw,csi".
  - `--bottomhash`: Default False. Use the bottom chunk along with the top chunk of the file for xxHash calculation.
  - `--outfile`: If not supplied then the optput is written to the screen.
 
-> NOTE: `spacesavers2_ls` reports errors (eg. cannot read file) to STDERR
+> NOTE: `spacesavers2_catalog` reports errors (eg. cannot read file) to STDERR
 
 ```bash
-% ./spacesavers2_ls --help
-usage: spacesavers2_ls [-h] -f FOLDER [-p THREADS] [-b BUFFERSIZE] [-i IGNOREHEADERSIZE] [-s SE] [-o OUTFILE] [-e | --bottomhash | --no-bottomhash]
+ % spacesavers2_catalog --help
+usage: spacesavers2_catalog [-h] -f FOLDER [-p THREADS] [-b BUFFERSIZE] [-i IGNOREHEADERSIZE] [-s SE] [-o OUTFILE] [-e | --bottomhash | --no-bottomhash]
 
-spacesavers2_ls: get per file info.
+spacesavers2_catalog: get per file info.
 
 options:
   -h, --help            show this help message and exit
   -f FOLDER, --folder FOLDER
-                        spacesavers2_ls will be run on all files in this folder and its subfolders
+                        spacesavers2_catalog will be run on all files in this folder and its subfolders
   -p THREADS, --threads THREADS
                         number of threads to be used
   -b BUFFERSIZE, --buffersize BUFFERSIZE
@@ -43,19 +43,19 @@ options:
                         this sized header of the file is ignored before extracting buffer of buffersize for xhash creation (only for special extension files)
   -s SE, --se SE        comma separated list of special extentions
   -o OUTFILE, --outfile OUTFILE
-                        outfile ls_out file .. by default output is printed to screen
+                        outfile ... catalog file .. by default output is printed to screen
   -e, --bottomhash, --no-bottomhash
                         separately calculated second hash for the bottom/end of the file.
 
 Version:
     v0.5
 Example:
-    > spacesavers2_ls -f /path/to/folder -p 56 -e
+    > spacesavers2_catalog -f /path/to/folder -p 56 -e
 ```
 
 ### Output
 
-`spacesavers2_ls` creates one semi-colon seperated output line per input file. Here is an example line:
+`spacesavers2_catalog` creates one semi-colon seperated output line per input file. Here is an example line:
 
 ```bash
 % head -n1 test.ls_out

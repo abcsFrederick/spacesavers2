@@ -18,8 +18,8 @@
 > ```
 ## `spacesavers2` has the following Basic commands:
 
-- spacesavers2_ls
-- spacesavers2_finddup
+- spacesavers2_catalog
+- spacesavers2_mimeo
 - spacesavers2_grubbers
 - spacesavers2_blamematrix
 - spacesavers2_e2e

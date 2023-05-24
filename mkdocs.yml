@@ -92,8 +92,8 @@ markdown_extensions:
 nav:
   - Background : index.md
   - Usage: 
-    - ls: ls.md
-    - finddup: finddup.md
+    - catalog: catalog.md
+    - mimeo: mimeo.md
     - grubbers: grubbers.md
     - blamematrix: blamematrix.md
     - e2e: e2e.md

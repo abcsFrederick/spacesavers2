@@ -22,8 +22,8 @@
 
 `spacesavers2` has the following Basic commands:
 
-- [spacesavers2_ls](ls.md)
-- [spacesavers2_finddup](finddup.md)
+- [spacesavers2_catalog](ls.md)
+- [spacesavers2_mimeo](finddup.md)
 - [spacesavers2_grubbers](grubbers.md)
 - [spacesavers2_blamematrix](blamematrix.md)
 - [spacesavers2_e2e](e2e.md)
