@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+# This is a wrapper for spook python script
+# It:
+# - loads the appropriate conda environment
+# - parses the variables directly to the python script
+# - deactivate enrivonment
+
+SCRIPTNAME="$0"
+SCRIPTDIRNAME=$(readlink -f $(dirname "$SCRIPTNAME"))
+TOOLDIR=$(dirname "$SCRIPTDIRNAME")
+TOOLNAME=$(basename "$SCRIPTNAME")
+echo $TOOLNAME
+#TOOLNAME="permfix"
+
+# load appropriate conda env
+. "/data/CCBR_Pipeliner/db/PipeDB/Conda/etc/profile.d/conda.sh" && conda activate py311
+
+${TOOLDIR}/${TOOLNAME} "$@" || true
+
+conda deactivate 
