@@ -15,6 +15,6 @@ OUTDIR="/data/CCBR_Pipeliner/userdata/spacesavers2/${dt}"
 
 if [ ! -d $OUTDIR ];then mkdir -p $OUTDIR;fi
 
-spacesavers2_e2e -i /data/CCBR -o $OUTDIR -q 200 -p 32
+${SPACESAVERS2DIR}/bin/spacesavers2_e2e -i /data/CCBR -o $OUTDIR -q 200 -p 32
 # delete the largest file to save space
 rm -f ${OUTDIR}/*.catalog
