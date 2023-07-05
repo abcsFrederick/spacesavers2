@@ -101,7 +101,7 @@ def main():
     groups = set()      # list of groups
     paths = set()
     path_lens = []
-    print_with_timestamp(start=start,scriptname=scriptname,string="Reading in ls_out file...")
+    print_with_timestamp(start=start,scriptname=scriptname,string="Reading in catalog file...")
     set_complete=True       
     with open(args.lsout) as lsout:
         for l in lsout:
@@ -116,7 +116,7 @@ def main():
                 paths.add(p)
             hash = fd.xhash_top + "#" + fd.xhash_bottom
             if hash == "#": # happens when file cannot be read
-                sys.stderr.write("Cannot read file listed in ls_out and will be excluded from finddup: {} \n".format(fd.apath))
+                sys.stderr.write("Cannot read file listed in catalog and will be excluded from mimeo: {} \n".format(fd.apath))
                 continue
             if not hash in hashhash: hashhash[hash] = dfUnit(hash)
             hashhash[hash].add_fd(fd)
@@ -146,7 +146,7 @@ def main():
         uid2uname[uid] = get_username_groupname(uid)
     for gid in groups:
         gid2gname[gid] = get_username_groupname(gid)
-    print_with_timestamp(start=start,scriptname=scriptname,string="Done reading in ls_out file!")
+    print_with_timestamp(start=start,scriptname=scriptname,string="Done reading in catalog file!")
     print_with_timestamp(start=start,scriptname=scriptname,string="Total Number of paths: %d"%len(paths))
     print_with_timestamp(start=start,scriptname=scriptname,string="Total Number of users: %d"%len(users))
 
@@ -157,7 +157,14 @@ def main():
             outfilenameprefix = args.prefix + "." + get_username_groupname(uid)
         else:
             outfilenameprefix = get_username_groupname(uid)
-        with gzip.open(os.path.join(os.path.abspath(args.outdir),outfilenameprefix + ".files.gz"),'wt') as user_output, open(os.path.join(os.path.abspath(args.outdir),outfilenameprefix + ".summary.txt"),'w') as user_summary:
+
+        summaryfilepath = os.path.join(os.path.abspath(args.outdir),outfilenameprefix + ".summary.txt")
+        useroutputpath = os.path.join(os.path.abspath(args.outdir),outfilenameprefix + ".files.gz")
+        
+        with open(summaryfilepath,'w') as user_summary:
+            user_summary.write("%s\n"%(Summary.HEADER))
+        
+        with gzip.open(useroutputpath,'wt') as user_output, open(summaryfilepath, 'a') as user_summary:
             peruser_perfolder_summaries = dict()
             for p in paths:
                 peruser_perfolder_summaries[p] = Summary(p)

@@ -17,11 +17,16 @@ def scored(age,bytes):
     try:
         score = (bytes * ageScore) / (bytes)
     except ZeroDivisionError:
-        score = (ageScore / age)
+        try:
+            score = (ageScore / age)
+        except ZeroDivisionError:
+            score = 0
     return score
 
 
 class Summary:
+    HEADER = "FolderPath\tTotalBytes\tDuplicateBytes\tPercentDuplicateBytes\tTotalFiles\tDuplicateFiles\tPercentDuplicateFiles\tTotalMeanAge\tDuplicateMeanAge\tAgeScore\tDupScore\tOccScore\tOverallScore"
+    
     def __init__(self,path):
         self.path = path
         self.non_dup_Bytes = []
@@ -59,6 +64,9 @@ class Summary:
         self.OccScore = wOcc * self.OccScore
         self.OverallScore = int(100 - 100 * (self.AgeScore + self.DupScore + self.OccScore))
     
+    def print_header(self):
+        return "FolderPath\tTotalBytes\tDuplicateBytes\tPercentDuplicateBytes\tTotalFiles\tDuplicateFiles\tPercentDuplicateFiles\tTotalMeanAge\tDuplicateMeanAge\tAgeScore\tDupScore\tOccScore\tOverallScore"
+
     def __str__(self):
         dup_Bytes = sum(self.dup_Bytes)
         tot_Bytes = sum(self.non_dup_Bytes) + dup_Bytes
