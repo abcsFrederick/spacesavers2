@@ -163,7 +163,7 @@ class FileDetails2:
             self.apath      = Path(apath)         # sometimes filename have ";" in them ... hence this!
             return True
         except:
-            sys.stderr.write("spacesavers2:{0}:ls_out Do not understand line:\"{1}\" with {2} elements.\n".format(self.__class__.__name__,original_fgzline,len(fgzline)))
+            sys.stderr.write("spacesavers2:{0}:catalog Do not understand line:\"{1}\" with {2} elements.\n".format(self.__class__.__name__,original_fgzline,len(fgzline)))
             # exit()            
             return False        
 
