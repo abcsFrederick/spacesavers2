@@ -8,10 +8,15 @@
 
 SCRIPTNAME="$0"
 SCRIPTDIRNAME=$(readlink -f $(dirname "$SCRIPTNAME"))
+
+# add "bin" to PATH
+if [[ ":$PATH:" != *":${SCRIPTDIRNAME}:"* ]];then
+	export PATH=${PATH}:${SCRIPTDIRNAME}
+fi
+
 TOOLDIR=$(dirname "$SCRIPTDIRNAME")
 TOOLNAME=$(basename "$SCRIPTNAME")
-echo $TOOLNAME
-#TOOLNAME="permfix"
+# echo $TOOLNAME
 
 # load appropriate conda env
 . "/data/CCBR_Pipeliner/db/PipeDB/Conda/etc/profile.d/conda.sh" && conda activate py311
