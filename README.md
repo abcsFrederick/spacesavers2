@@ -1,6 +1,14 @@
 # :rocket: spacesavers2 :rocket:
 
-`spacesavers2` 
+## Table of Contents:
+ - [Background](#background)
+ - [Basic Commands](##spacesavers2-has-the-following-basic-commands)
+ - [Flow Diagram](#spacesavers2-typical-workflow-looks-like-this)
+ - [Detailed Documentation](https://ccbr.github.io/spacesavers2)
+
+## Background
+
+Welcome! `spacesavers2`: 
 
 - crawls through the provided folder (and its subfolders), 
 - gathers stats for each file like size, inode, user/group information, etc., 
@@ -29,3 +37,8 @@
 ![](docs/assets/images/spacesavers2.png)
 
 Check out the detailed [documentation](https://ccbr.github.io/spacesavers2/) for more details. Please reach out to [Vishal Koparde](mailto:vishal.koparde@nih.gov) with queries/comments.
+
+<hr>
+<p align="center">
+	<a href="#rocket-spacesavers2-rocket">Back to Top</a>
+</p>
