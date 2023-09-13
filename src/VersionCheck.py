@@ -1,7 +1,13 @@
 import sys
+import os
 
 global __version__
-__version__ = 'v0.7'
+current_path = os.path.dirname(os.path.abspath(__file__))
+vfile = open(os.path.join(current_path, "VERSION"), "r")
+__version__ = "v" + vfile.read()
+__version__ = __version__.strip()
+vfile.close()
+
 
 def version_check():
     # version check
@@ -10,5 +16,6 @@ def version_check():
     try:
         assert sys.version_info >= MIN_PYTHON
     except AssertionError:
-        exit(f"{sys.argv[0]} requires Python {'.'.join([str(n) for n in MIN_PYTHON])} or newer")
-
+        exit(
+            f"{sys.argv[0]} requires Python {'.'.join([str(n) for n in MIN_PYTHON])} or newer"
+        )
