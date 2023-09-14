@@ -1,12 +1,14 @@
 name: build_docs
 on:
-  push:
-    branches:    
-      - '*'         # matches every branch that doesn't contain a '/'
-      - '*/*'       # matches every branch containing a single '/'
-      - '**'        # matches every branch
-    paths:
-      - 'docs/**'
+  workflow_dispatch:
+# on:
+#   push:
+    # branches:    
+    #   - '*'         # matches every branch that doesn't contain a '/'
+    #   - '*/*'       # matches every branch containing a single '/'
+    #   - '**'        # matches every branch
+    # paths:
+    #   - 'docs/**'
 
 jobs:
   deploy:
