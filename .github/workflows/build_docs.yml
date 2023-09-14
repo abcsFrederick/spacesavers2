@@ -1,0 +1,23 @@
+name: build_docs
+# on:
+#   workflow_dispatch:
+on:
+  push:
+    branches:
+      - "*" # matches every branch that doesn't contain a '/'
+      - "*/*" # matches every branch containing a single '/'
+      - "**" # matches every branch
+    paths:
+      - "docs/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - run: pip install --upgrade pip
+      - run: pip install -r docs/requirements.txt
+      - run: mkdocs gh-deploy --force

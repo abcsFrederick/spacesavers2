@@ -2,10 +2,10 @@
 
 ## Background
 
-`spacesavers2` 
+`spacesavers2`
 
-- crawls through the provided folder (and its subfolders), 
-- gathers stats for each file like size, inode, user/group information, etc., 
+- crawls through the provided folder (and its subfolders),
+- gathers stats for each file like size, inode, user/group information, etc.,
 - calculates unique hashes for each file,
 - using the information gathers determines "duplicates",
 - reports "high-value" duplicates, i.e., the ones that will give back most diskspace, if deleted,and
@@ -13,11 +13,13 @@
 
 > New improved parallel implementation of [`spacesavers`](https://github.com/CCBR/spacesavers). `spacesavers` is soon to be decommissioned!
 
-> Note: `spacesavers2` requires [python version 3.11](https://www.python.org/downloads/release/python-3110/) or later and the [xxhash](https://pypi.org/project/xxhash/) library. These dependencies are already installed on biowulf (as a conda env). The enviroment for running `spacesavers2` can get set up using:
+> Note: `spacesavers2` requires [python version 3.11](https://www.python.org/downloads/release/python-3110/) or later and the [xxhash](https://pypi.org/project/xxhash/) library. These dependencies are already installed on biowulf (as a conda env). The environment for running `spacesavers2` can get set up using:
+>
 > ```bash
 > . "/data/CCBR_Pipeliner/db/PipeDB/Conda/etc/profile.d/conda.sh" && \
 > conda activate py311
 > ```
+
 ## Commands
 
 `spacesavers2` has the following Basic commands:
@@ -26,6 +28,7 @@
 - [spacesavers2_mimeo](mimeo.md)
 - [spacesavers2_grubbers](grubbers.md)
 - [spacesavers2_blamematrix](blamematrix.md)
+- [spacesavers2_usurp](usurp.md)
 - [spacesavers2_e2e](e2e.md)
 
 ## Use case

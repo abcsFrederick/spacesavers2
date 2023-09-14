@@ -29,13 +29,13 @@ def main():
     Version:
         {}
     Example:
-        > spacesavers2_dup2ln -g grubbers.TSV -h someHash
+        > spacesavers2_usurp -g grubbers.TSV -h someHash
         """.format(
             __version__
         )
     )
     parser = argparse.ArgumentParser(
-        description="spacesavers2_dup2ln: delete all but one copy of the file matching the hash and replace all other copies with hardlinks",
+        description="spacesavers2_usurp: delete all but one copy of the file matching the hash and replace all other copies with hardlinks",
         epilog=elog,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
