@@ -16,6 +16,7 @@ engine: knitr
 library(bslib)
 library(dplyr)
 library(ggplot2)
+library(glue)
 library(here)
 library(lubridate)
 library(plotly)
@@ -27,6 +28,7 @@ library(tidyr)
 
 input_dir <- here('data') # '/data/CCBR_Pipeliner/userdata/spacesavers2/'
 aggregated_filetypes <- c('blamematrix','catalog','mimeo')
+# TODO: only load last N weeks of data
 user_dat <- tibble(filename = list.dirs(input_dir) %>%
                      Filter(function(x) { x != input_dir }, .) %>%
                      lapply(function(x) { list.files(x, full.names = TRUE) }) %>%
@@ -57,14 +59,14 @@ summary_dat <- user_dat %>%
   map(function(x) { read_tsv(x) %>% mutate(filename = x)}) %>%
   list_rbind() %>%
   separate_wider_delim(filename, delim = '.', cols_remove = FALSE,
-                       names = c("date", 'path', 'username', 'file', 'ext'))
+                       names = c("basepath", 'path', 'username', 'file', 'ext'))
 plots <- metrics_filter %>% lapply(function(metric) {
   p <- summary_dat %>%
-    ggplot(aes(eval_tidy(data_sym(metric)), path, color = username)) +
+    ggplot(aes(eval_tidy(data_sym(metric)), path, color = username,
+               text = glue("{username}\n{metric}\n{FolderPath}"))) +
     geom_jitter(height = 0.2, alpha = 0.7) +
     labs(x = metric)
-  card(card_header(metric), ggplotly(p))
+  card(card_header(metric), ggplotly(p, tooltip = "text"))
 })
-# TODO: show filepath on plotly hover
 page_fillable(plots)
 ```
