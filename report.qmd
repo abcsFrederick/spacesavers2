@@ -3,51 +3,68 @@ title: "spacesavers2 🚀 report"
 author: "CCR Collaborative Bioinformatics Resource"
 format:
   html:
-    theme: bslib
+    theme:
+      bslib
     embed-resources: true
     toc: true
     code-fold: true
+engine: knitr
 ---
 
-```{r deps}
+```{r load}
+#| message: false
 library(bslib)
 library(dplyr)
 library(ggplot2)
 library(here)
 library(lubridate)
+library(plotly)
 library(purrr)
 library(readr)
+library(rlang)
 library(stringr)
 library(tidyr)
-```
 
-
-```{r userdata}
-input_dir <- here('data','20230925') # '/data/CCBR_Pipeliner/userdata/spacesavers2/'
+input_dir <- here('data') # '/data/CCBR_Pipeliner/userdata/spacesavers2/'
 aggregated_filetypes <- c('blamematrix','catalog','mimeo')
-user_dat <- tibble(filename = list.files(input_dir, full.names = TRUE)) %>%
+user_dat <- tibble(filename = list.dirs(input_dir) %>%
+                     Filter(function(x) { x != input_dir }, .) %>%
+                     lapply(function(x) { list.files(x, full.names = TRUE) }) %>%
+                     unlist()
+                   ) %>%
   filter(!str_detect(filename, paste(aggregated_filetypes, collapse = '|'))) %>%
   separate_wider_delim(filename, delim = '.', cols_remove = FALSE,
                        names = c("date", 'path', 'username', 'file', 'ext')) %>%
 
   filter(str_detect(ext, "tsv|txt")) %>%
   mutate(date = as_date(basename(date)))
+
+dates <- user_dat %>% pull(date) %>% unique()
+most_recent_date <- dates %>% max()
+usernames <- user_dat %>% pull(username) %>% unique()
+
+users_filter <- c('sovacoolkl', 'kopardevn') # TODO optionally select certain users
+metrics_filter <- c('DuplicateBytes','OverallScore','TotalFiles') # TODO optionally select certain metrics
 ```
 
-```{r plot_summary_single}
-users <- c('sovacoolkl', 'kopardevn')
-dates <- as_date('2023-09-25')
-metrics <- c('DuplicatesFiles','OverallScore','TotalFiles')
-user_dat %>%
-  filter(username %in% users, date %in% dates, file == 'summary') %>%
+## Most recent summary (`r most_recent_date`)
+
+```{r plotly_summary}
+#| message: false
+summary_dat <- user_dat %>%
+  filter(username %in% users_filter, date == most_recent_date, file == 'summary') %>%
   pull(filename) %>%
   map(function(x) { read_tsv(x) %>% mutate(filename = x)}) %>%
   list_rbind() %>%
   separate_wider_delim(filename, delim = '.', cols_remove = FALSE,
-                       names = c("date", 'path', 'username', 'file', 'ext')) %>%
-  pivot_longer(where(is.numeric), names_to = 'metric') %>%
-  filter(metric %in% metrics) %>%
-  ggplot(aes(value, path, color = username)) +
-  geom_boxplot() +
-  facet_grid(~metric, scales = 'free')
+                       names = c("date", 'path', 'username', 'file', 'ext'))
+plots <- metrics_filter %>% lapply(function(metric) {
+  p <- summary_dat %>%
+    ggplot(aes(eval_tidy(data_sym(metric)), path, color = username)) +
+    geom_jitter(height = 0.2, alpha = 0.7) +
+    labs(x = metric)
+  card(card_header(metric), ggplotly(p))
+})
+# TODO: show filepath on plotly hover
+page_fillable(plots)
 ```
