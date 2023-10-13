@@ -15,3 +15,5 @@
 # R
 .Rproj.user
 *.Rproj
+
+/.quarto/

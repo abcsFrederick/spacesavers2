@@ -1,13 +1,19 @@
 ---
 title: "spacesavers2 🚀 report"
 author: "CCR Collaborative Bioinformatics Resource"
-format: html
-server: shiny
+format:
+  html:
+    theme: bslib
+    embed-resources: true
+    toc: true
+    code-fold: true
 ---
 
 ```{r deps}
+library(bslib)
 library(dplyr)
 library(ggplot2)
+library(here)
 library(lubridate)
 library(purrr)
 library(readr)
@@ -16,29 +22,8 @@ library(tidyr)
 ```
 
 
-## Inputs and Outputs
-
-You can embed Shiny inputs and outputs in your document. Outputs are automatically updated whenever inputs change. This demonstrates how a standard R plot can be made interactive:
-
-```{r}
-sliderInput("bins", "Number of bins:",
-            min = 1, max = 50, value = 30)
-plotOutput("distPlot")
-```
-
-```{r}
-#| context: server
-output$distPlot <- renderPlot({
-   x <- faithful[, 2]  # Old Faithful Geyser data
-   bins <- seq(min(x), max(x), length.out = input$bins + 1)
-   hist(x, breaks = bins, col = 'darkgray', border = 'white',
-        xlab = 'Waiting time to next eruption (in mins)',
-        main = 'Histogram of waiting times')
-})
-```
-
 ```{r userdata}
-input_dir <- 'data/20230925' # '/data/CCBR_Pipeliner/userdata/spacesavers2/'
+input_dir <- here('data','20230925') # '/data/CCBR_Pipeliner/userdata/spacesavers2/'
 aggregated_filetypes <- c('blamematrix','catalog','mimeo')
 user_dat <- tibble(filename = list.files(input_dir, full.names = TRUE)) %>%
   filter(!str_detect(filename, paste(aggregated_filetypes, collapse = '|'))) %>%
@@ -48,6 +33,7 @@ user_dat <- tibble(filename = list.files(input_dir, full.names = TRUE)) %>%
   filter(str_detect(ext, "tsv|txt")) %>%
   mutate(date = as_date(basename(date)))
 ```
+
 ```{r plot_summary_single}
 users <- c('sovacoolkl', 'kopardevn')
 dates <- as_date('2023-09-25')
