@@ -1,6 +1,7 @@
 ---
 title: "spacesavers2 🚀 report"
 author: "CCR Collaborative Bioinformatics Resource"
+date: '`r lubridate::today()`'
 output:
   html_document:
     theme:
@@ -32,7 +33,7 @@ theme_set(theme_bw())
 
 input_dir <- here("data") # '/data/CCBR_Pipeliner/userdata/spacesavers2/'
 aggregated_filetypes <- c("blamematrix", "catalog", "mimeo")
-# TODO: only load last N weeks of data
+# TODO: only load last N weeks of data to keep RAM usage reasonably low
 user_dat <- tibble(filename = list.dirs(input_dir) %>%
   Filter(function(x) {
     x != input_dir
@@ -46,7 +47,11 @@ user_dat <- tibble(filename = list.dirs(input_dir) %>%
     delim = ".", cols_remove = FALSE,
     names = c("date", "path", "username", "file", "ext")
   ) %>%
-  filter(str_detect(ext, "tsv|txt")) %>%
+  filter(
+    str_detect(ext, "tsv|txt"), # only keep tab-delimited files
+    !str_detect(username, "[0-9]"), # filter out numeric usernames
+    username != "allusers"
+  ) %>% # filter out the 'allusers' rows
   mutate(date = as_date(basename(date)))
 
 dates <- user_dat %>%
@@ -58,14 +63,17 @@ usernames <- user_dat %>%
   unique()
 
 users_filter <- c("sovacoolkl", "kopardevn") # TODO optionally select certain users
-# TODO optionally select certain metrics
 ```
 
 ## Most recent summary (`r most_recent_date`)
 
+Disk usage in `/data/CCBR` on Biowulf
+
 ```{r summary_recent}
 summary_dat_recent <- user_dat %>%
-  filter(username %in% users_filter, date == most_recent_date, file == "summary") %>%
+  filter( # username %in% users_filter,
+    date == most_recent_date, file == "summary"
+  ) %>%
   pull(filename) %>%
   map(function(x) {
     read_tsv(x) %>% mutate(filename = x)
@@ -74,21 +82,53 @@ summary_dat_recent <- user_dat %>%
   separate_wider_delim(filename,
     delim = ".", cols_remove = FALSE,
     names = c("basepath", "path", "username", "file", "ext")
-  )
+  ) %>%
+  filter(FolderPath == "/data/CCBR")
 
 summary_metrics <- summary_dat_recent %>%
   pivot_longer(where(is.numeric), names_to = "metric") %>%
   pull(metric) %>%
   unique()
-plots <- summary_metrics %>% lapply(function(metric) {
+
+top_users <- summary_dat_recent %>%
+  pivot_longer(where(is.numeric),
+    names_to = "metric"
+  ) %>%
+  mutate(value_adj = case_when(
+    str_detect(metric, "[sS]core") ~ -value,
+    TRUE ~ value
+  )) %>%
+  group_by(metric) %>%
+  slice_max(order_by = value_adj, n = 10) %>%
+  pull(username) %>%
+  unique()
+
+plots <- summary_metrics %>% lapply(function(y_metric) {
+  user_order <- summary_dat_recent %>%
+    filter(username %in% top_users) %>%
+    pivot_longer(where(is.numeric),
+      names_to = "metric"
+    ) %>%
+    mutate(value_adj = case_when(
+      str_detect(metric, "[sS]core") ~ -value,
+      TRUE ~ value
+    )) %>%
+    filter(metric == y_metric) %>%
+    arrange(by = value_adj) %>%
+    pull(username)
   p <- summary_dat_recent %>%
-    ggplot(aes(eval_tidy(data_sym(metric)), path,
-      color = username,
-      text = glue("{username}\n{metric}\n{FolderPath}")
+    filter(username %in% top_users) %>%
+    mutate(username = factor(username, levels = user_order)) %>%
+    ggplot(aes(
+      x = eval_tidy(data_sym(y_metric)),
+      y = username,
+      fill = eval_tidy(data_sym(y_metric)),
+      text = glue("{username}\n{y_metric}\n{FolderPath}")
     )) +
-    geom_jitter(height = 0.2, alpha = 0.7) +
-    labs(x = metric)
-  nav_panel(title = metric, card_header(metric), ggplotly(p, tooltip = "text"))
+    geom_col() +
+    labs(x = y_metric, y = "") +
+    theme(legend.position = "none")
+  nav_panel(title = y_metric, card_header(y_metric), ggplotly(p, tooltip = "text"))
 })
 do.call(navset_pill_list, plots)
 ```
@@ -97,7 +137,9 @@ do.call(navset_pill_list, plots)
 
 ```{r summary_over_time}
 summary_dat_all <- user_dat %>%
-  filter(username %in% users_filter, file == "summary") %>%
+  filter( # username %in% users_filter,
+    file == "summary"
+  ) %>%
   pull(filename) %>%
   map(function(x) {
     read_tsv(x) %>% mutate(filename = x)
