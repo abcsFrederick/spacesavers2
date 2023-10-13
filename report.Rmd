@@ -9,6 +9,8 @@ output:
     code_folding: hide
     toc: true
     self_contained: true
+params:
+  input_dir: '/data/CCBR_Pipeliner/userdata/spacesavers2/'
 knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs/") })
 ---
@@ -31,7 +33,7 @@ library(stringr)
 library(tidyr)
 theme_set(theme_bw())
 
-input_dir <- here("data") # '/data/CCBR_Pipeliner/userdata/spacesavers2/'
+input_dir <- params$input_dir # here("data")
 aggregated_filetypes <- c("blamematrix", "catalog", "mimeo")
 # TODO: only load last N weeks of data to keep RAM usage reasonably low
 user_dat <- tibble(filename = list.dirs(input_dir) %>%
