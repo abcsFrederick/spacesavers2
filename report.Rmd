@@ -5,6 +5,10 @@ output:
   html_document:
     theme:
       version: 5
+    code_folding: hide
+    toc: true
+    toc_float: true
+    self_contained: true
 ---
 ```{r setup}
 knitr::opts_chunk$set(message = FALSE)
@@ -53,7 +57,7 @@ usernames <- user_dat %>%
   unique()
 
 users_filter <- c("sovacoolkl", "kopardevn") # TODO optionally select certain users
-metrics_filter <- c("DuplicateBytes", "OverallScore", "TotalFiles") # TODO optionally select certain metrics
+# TODO optionally select certain metrics
 ```
 
 ## Most recent summary (`r most_recent_date`)
@@ -70,7 +74,12 @@ summary_dat_recent <- user_dat %>%
     delim = ".", cols_remove = FALSE,
     names = c("basepath", "path", "username", "file", "ext")
   )
-plots <- metrics_filter %>% lapply(function(metric) {
+
+summary_metrics <- summary_dat_recent %>%
+  pivot_longer(where(is.numeric), names_to = "metric") %>%
+  pull(metric) %>%
+  unique()
+plots <- summary_metrics %>% lapply(function(metric) {
   p <- summary_dat_recent %>%
     ggplot(aes(eval_tidy(data_sym(metric)), path,
       color = username,
@@ -78,9 +87,9 @@ plots <- metrics_filter %>% lapply(function(metric) {
     )) +
     geom_jitter(height = 0.2, alpha = 0.7) +
     labs(x = metric)
-  card(card_header(metric), ggplotly(p, tooltip = "text"))
+  nav_panel(title = metric, card_header(metric), ggplotly(p, tooltip = "text"))
 })
-page_fillable(plots)
+do.call(navset_pill_list, plots)
 ```
 
 ## Summary over time
@@ -98,7 +107,12 @@ summary_dat_all <- user_dat %>%
     names = c("basepath", "path", "username", "file", "ext")
   ) %>%
   mutate(date = str_replace(basepath, ".*/", "") %>% as_date())
-plots <- metrics_filter %>% lapply(function(metric) {
+
+summary_metrics <- summary_dat_all %>%
+  pivot_longer(where(is.numeric), names_to = "metric") %>%
+  pull(metric) %>%
+  unique()
+plots <- summary_metrics %>% lapply(function(metric) {
   p <- summary_dat_all %>%
     ggplot(aes(date, eval_tidy(data_sym(metric)),
       color = username,
