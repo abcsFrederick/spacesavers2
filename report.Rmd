@@ -149,21 +149,50 @@ summary_dat_all <- user_dat %>%
     delim = ".", cols_remove = FALSE,
     names = c("basepath", "path", "username", "file", "ext")
   ) %>%
-  mutate(date = str_replace(basepath, ".*/", "") %>% as_date())
+  mutate(date = str_replace(basepath, ".*/", "") %>% as_date()) %>%
+  filter(FolderPath == "/data/CCBR") # TODO: repeat for /data/CCBR_Pipeliner
 
 summary_metrics <- summary_dat_all %>%
   pivot_longer(where(is.numeric), names_to = "metric") %>%
   pull(metric) %>%
   unique()
-plots <- summary_metrics %>% lapply(function(metric) {
+
+top_users <- summary_dat_all %>%
+  pivot_longer(where(is.numeric),
+    names_to = "metric"
+  ) %>%
+  mutate(value_adj = case_when(
+    str_detect(metric, "[sS]core") ~ -value,
+    TRUE ~ value
+  )) %>%
+  group_by(metric) %>%
+  slice_max(order_by = value_adj, n = 10) %>%
+  pull(username) %>%
+  unique()
+
+plots <- summary_metrics %>% lapply(function(y_metric) {
+  user_order <- summary_dat_all %>%
+    filter(username %in% top_users) %>%
+    pivot_longer(where(is.numeric),
+      names_to = "metric"
+    ) %>%
+    mutate(value_adj = case_when(
+      str_detect(metric, "[sS]core") ~ -value,
+      TRUE ~ value
+    )) %>%
+    filter(metric == y_metric) %>%
+    arrange(by = value_adj) %>%
+    pull(username)
   p <- summary_dat_all %>%
-    ggplot(aes(date, eval_tidy(data_sym(metric)),
+    filter(username %in% user_order) %>%
+    ggplot(aes(date, eval_tidy(data_sym(y_metric)),
       color = username,
-      text = glue("{username}\n{metric}\n{FolderPath}")
+      text = glue("{username}\n{y_metric}\n{FolderPath}")
     )) +
-    geom_jitter(width = 0.2, alpha = 0.7) +
-    labs(y = metric)
-  nav_panel(title = metric, card_header(metric), ggplotly(p, tooltip = "text"))
+    geom_line(alpha = 0.7) +
+    geom_point() +
+    labs(y = y_metric)
+  nav_panel(title = y_metric, card_header(y_metric), ggplotly(p, tooltip = "text"))
 })
 do.call(navset_pill_list, plots)
 ```
