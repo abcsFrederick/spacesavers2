@@ -51,9 +51,9 @@ metrics_filter <- c('DuplicateBytes','OverallScore','TotalFiles') # TODO optiona
 
 ## Most recent summary (`r most_recent_date`)
 
-```{r plotly_summary}
+```{r summary_recent}
 #| message: false
-summary_dat <- user_dat %>%
+summary_dat_recent <- user_dat %>%
   filter(username %in% users_filter, date == most_recent_date, file == 'summary') %>%
   pull(filename) %>%
   map(function(x) { read_tsv(x) %>% mutate(filename = x)}) %>%
@@ -61,7 +61,7 @@ summary_dat <- user_dat %>%
   separate_wider_delim(filename, delim = '.', cols_remove = FALSE,
                        names = c("basepath", 'path', 'username', 'file', 'ext'))
 plots <- metrics_filter %>% lapply(function(metric) {
-  p <- summary_dat %>%
+  p <- summary_dat_recent %>%
     ggplot(aes(eval_tidy(data_sym(metric)), path, color = username,
                text = glue("{username}\n{metric}\n{FolderPath}"))) +
     geom_jitter(height = 0.2, alpha = 0.7) +
@@ -69,4 +69,28 @@ plots <- metrics_filter %>% lapply(function(metric) {
   card(card_header(metric), ggplotly(p, tooltip = "text"))
 })
 page_fillable(plots)
+```
+
+## Summary over time
+
+```{r summary_over_time}
+#| message: false
+summary_dat_all <- user_dat %>%
+  filter(username %in% users_filter, file == 'summary') %>%
+  pull(filename) %>%
+  map(function(x) { read_tsv(x) %>% mutate(filename = x)}) %>%
+  list_rbind() %>%
+  separate_wider_delim(filename, delim = '.', cols_remove = FALSE,
+                       names = c("basepath", 'path', 'username', 'file', 'ext')) %>%
+  mutate(date = str_replace(basepath, ".*/", "") %>% as_date())
+plots <- metrics_filter %>% lapply(function(metric) {
+  p <- summary_dat_all %>%
+    ggplot(aes(date, eval_tidy(data_sym(metric)), color = username,
+               text = glue("{username}\n{metric}\n{FolderPath}"))) +
+    geom_jitter(width = 0.2, alpha = 0.7) +
+    labs(y = metric)
+  nav_panel(title = metric, card_header(metric), ggplotly(p, tooltip = "text"))
+})
+do.call(navset_pill_list, plots)
+navset_pill_list(plots[[1]], plots[[2]])
 ```
