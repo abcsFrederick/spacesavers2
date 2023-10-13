@@ -7,8 +7,9 @@ output:
       version: 5
     code_folding: hide
     toc: true
-    toc_float: true
     self_contained: true
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs/") })
 ---
 ```{r setup}
 knitr::opts_chunk$set(message = FALSE)
