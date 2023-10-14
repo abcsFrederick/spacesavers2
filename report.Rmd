@@ -21,6 +21,7 @@ knitr::opts_chunk$set(message = FALSE)
 ```{r load}
 library(bslib)
 library(dplyr)
+library(DT)
 library(ggplot2)
 library(glue)
 library(here)
@@ -53,8 +54,8 @@ user_dat <- tibble(filename = list.dirs(input_dir) %>%
   filter(
     str_detect(ext, "tsv|txt"), # only keep tab-delimited files
     !str_detect(username, "[0-9]"), # filter out numeric usernames
-    username != "allusers"
-  ) %>% # filter out the 'allusers' rows
+    username != "allusers" # filter out the 'allusers' rows
+  ) %>%
   mutate(date = as_date(basename(date)))
 
 dates <- user_dat %>%
@@ -64,8 +65,6 @@ most_recent_date <- dates %>% max()
 usernames <- user_dat %>%
   pull(username) %>%
   unique()
-
-users_filter <- c("sovacoolkl", "kopardevn") # TODO optionally select certain users
 
 user_dat %>% write_tsv(here("results", glue("user-dat_{today()}.tsv")))
 ```
@@ -199,4 +198,59 @@ plots <- summary_metrics %>% lapply(function(y_metric) {
   nav_panel(title = y_metric, card_header(y_metric), ggplotly(p, tooltip = "text"))
 })
 do.call(navset_pill_list, plots)
+```
+
+
+## High value duplicate files (`r most_recent_date`)
+
+```{r grubbers}
+grub_dat <- list.files(
+  here(
+    input_dir,
+    format(most_recent_date, format = "%Y%m%d")
+  ),
+  full.names = TRUE
+) %>%
+  Filter(function(x) str_detect(x, "_data_CCBR\\..*\\.grubbers\\.tsv"), .) %>%
+  map(function(x) {
+    read_tsv(x, col_names = FALSE) %>%
+      mutate(filename = x)
+  }) %>%
+  list_rbind() %>%
+  rename(
+    file_hash = X1,
+    file_count = X2,
+    total_disk_usage = X3,
+    single_disk_usage = X4,
+    filepaths = X5
+  ) %>%
+  separate_wider_delim(filename,
+    delim = ".", cols_remove = FALSE,
+    names = c("date", "path", "username", "file", "ext")
+  ) %>%
+  mutate(date = as_date(basename(date))) %>%
+  filter(
+    !str_detect(username, "[0-9]"), # filter out numeric usernames
+    username != "allusers" # filter out the 'allusers' rows
+  ) %>%
+  separate_wider_delim(total_disk_usage,
+    delim = " ",
+    names = c("total_disk_usage_value", "total_disk_usage_unit"),
+    cols_remove = FALSE
+  ) %>%
+  separate_wider_delim(single_disk_usage,
+    delim = " ",
+    names = c("single_disk_usage_value", "single_disk_usage_unit"),
+    cols_remove = FALSE
+  ) %>%
+  mutate(across(all_of(c("total_disk_usage_value", "single_disk_usage_value")), as.numeric))
+
+grub_dat %>% write_tsv(here("results", glue("grub-dat_{today()}.tsv")))
+
+top_files <- grub_dat %>%
+  arrange(order_by = desc(total_disk_usage_value)) %>%
+  select(total_disk_usage_value, username, filepaths) %>%
+  rename(disk_usage_gb = total_disk_usage_value)
+
+card(card_header("Top files"), datatable(top_files, fillContainer = TRUE))
 ```
