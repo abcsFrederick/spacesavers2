@@ -15,7 +15,7 @@ knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs/") })
 ---
 ```{r setup}
-knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 ```
 
 ```{r load}
