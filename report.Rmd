@@ -48,7 +48,7 @@ user_dat <- tibble(filename = list.dirs(input_dir) %>%
   separate_wider_delim(filename,
     delim = ".", cols_remove = FALSE,
     names = c("date", "path", "username", "file", "ext"),
-    too_few = 'debug'
+    too_few = "debug"
   ) %>%
   filter(
     str_detect(ext, "tsv|txt"), # only keep tab-delimited files
@@ -67,7 +67,7 @@ usernames <- user_dat %>%
 
 users_filter <- c("sovacoolkl", "kopardevn") # TODO optionally select certain users
 
-user_dat %>% write_tsv(here("results","user-dat_{today()}.tsv"))
+user_dat %>% write_tsv(here("results", "user-dat_{today()}.tsv"))
 ```
 
 ## Most recent summary (`r most_recent_date`)
@@ -90,7 +90,7 @@ summary_dat_recent <- user_dat %>%
   ) %>%
   filter(FolderPath == "/data/CCBR")
 
-summary_dat_recent %>% write_tsv(here("results","summary-dat-recent_{today()}.tsv"))
+summary_dat_recent %>% write_tsv(here("results", "summary-dat-recent_{today()}.tsv"))
 
 summary_metrics <- summary_dat_recent %>%
   pivot_longer(where(is.numeric), names_to = "metric") %>%
@@ -159,7 +159,7 @@ summary_dat_all <- user_dat %>%
   mutate(date = str_replace(basepath, ".*/", "") %>% as_date()) %>%
   filter(FolderPath == "/data/CCBR") # TODO: repeat for /data/CCBR_Pipeliner
 
-summary_dat_all %>% write_tsv(here("results","summary-dat-all_{today()}.tsv"))
+summary_dat_all %>% write_tsv(here("results", "summary-dat-all_{today()}.tsv"))
 
 top_users <- summary_dat_all %>%
   pivot_longer(all_of(summary_metrics),
@@ -191,7 +191,7 @@ plots <- summary_metrics %>% lapply(function(y_metric) {
     filter(username %in% user_order) %>%
     ggplot(aes(date, eval_tidy(data_sym(y_metric)),
       color = username,
-      text = glue("{username}\n{y_metric}\n{FolderPath}")
+      text = glue("{username}\n{y_metric}\n{FolderPath}\n{date}")
     )) +
     geom_line(alpha = 0.7) +
     geom_point() +
