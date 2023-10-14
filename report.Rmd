@@ -189,11 +189,10 @@ plots <- summary_metrics %>% lapply(function(y_metric) {
   p <- summary_dat_all %>%
     filter(username %in% user_order) %>%
     ggplot(aes(date, eval_tidy(data_sym(y_metric)),
-      color = username,
-      text = glue("{username}\n{y_metric}\n{FolderPath}\n{date}")
+      color = username
     )) +
     geom_line(alpha = 0.7) +
-    geom_point() +
+    geom_point(aes(text = glue("{username}\n{y_metric}\n{FolderPath}\n{date}"))) +
     labs(y = y_metric)
   nav_panel(title = y_metric, card_header(y_metric), ggplotly(p, tooltip = "text"))
 })
