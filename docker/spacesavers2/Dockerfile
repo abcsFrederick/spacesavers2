@@ -8,12 +8,10 @@ ENV BUILD_TAG=${BUILD_TAG}
 ARG REPONAME="000000"
 ENV REPONAME=${REPONAME}
 
-# install pandoc
-RUN mamba install pandoc
-
-# install R packages
-COPY r-packages.txt /data2/
-RUN R -e 'install.packages(readLines("r-packages.txt"), repos="http://cran.us.r-project.org")'
+# install pandoc & R packages
+COPY environment.txt /data/2
+RUN mamba install -c conda-forge -c r --file environment.txt
+ENV R_LIBS_USER=/opt2/conda/lib/R/library/
 
 # install quarto
 ENV QUARTO_VERSION="1.3.450"
