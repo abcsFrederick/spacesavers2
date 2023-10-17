@@ -118,20 +118,26 @@ df -h /data/CCBR |\
   sed -E 's/ +/\t/g' > results/disk_usage.txt
 ```
 
-```{r read_df}
+```{r disk_usage}
 disk_usage <- read_tsv(here("results", "disk_usage.txt"))
 df_date <- disk_usage %>%
   pull("date") %>%
   as_date()
-```
 
-All `r length(usernames)` users in `/data/CCBR` on Biowulf as of `r df_date`
-
-```{r disk_usage}
-disk_usage_table <- disk_usage %>%
-  select(Size, Used, `Use%`) %>%
-  knitr::kable()
-card(markdown(disk_usage_table))
+layout_column_wrap(
+  width = 1 / 2,
+  value_box(
+    title = markdown("Disk space in `/data/CCBR`"),
+    value = markdown(disk_usage %>%
+      mutate(Usage = glue("{Used} / {Size}")) %>%
+      select(Usage, `Use%`) %>%
+      kable())
+  ),
+  value_box(
+    title = markdown("Users"),
+    value = markdown(glue("{length(usernames)} users as of\n{df_date}"))
+  )
+)
 ```
 
 ## Most recent summary (`r most_recent_date`)
@@ -217,7 +223,7 @@ panel_summary <- function(dat,
   })
   nav_panel(
     title = markdown(glue("`{folder_path}`")),
-    do.call(navset_pill_list, plots)
+    navset_pill_list(!!!plots)
   )
 }
 
