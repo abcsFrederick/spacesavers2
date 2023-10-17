@@ -11,6 +11,7 @@ output:
     self_contained: true
 params:
   input_dir: '/data/CCBR_Pipeliner/userdata/spacesavers2/'
+  n_top_users: 10
 knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs/") })
 ---
@@ -49,6 +50,7 @@ filter_users <- function(dat, usercol = username) {
     )
 }
 
+n_top_users <- params$n_top_users
 input_dir <- params$input_dir # here("data")
 aggregated_filetypes <- c("blamematrix", "catalog", "mimeo")
 # TODO: only load last N weeks of data to keep RAM usage reasonably low
@@ -124,7 +126,7 @@ df_date <- disk_usage %>%
   as_date()
 ```
 
-in `/data/CCBR` as of `r df_date`
+All `length(usernames)` users in `/data/CCBR` on Biowulf as of `r df_date`
 
 ```{r disk_usage}
 disk_usage %>%
@@ -134,7 +136,7 @@ disk_usage %>%
 
 ## Most recent summary (`r most_recent_date`)
 
-Disk usage in `/data/CCBR` on Biowulf
+Usage in `/data/CCBR` of top `r n_top_users` users for each spacesavers metric.
 
 ```{r summary_recent}
 summary_dat_recent <- user_dat %>%
@@ -159,6 +161,7 @@ summary_metrics <- summary_dat_recent %>%
   pull(metric) %>%
   unique()
 
+
 top_users <- summary_dat_recent %>%
   pivot_longer(all_of(summary_metrics),
     names_to = "metric"
@@ -168,7 +171,7 @@ top_users <- summary_dat_recent %>%
     TRUE ~ value
   )) %>%
   group_by(metric) %>%
-  slice_max(order_by = value_adj, n = 10) %>%
+  slice_max(order_by = value_adj, n = n_top_users) %>%
   pull(username) %>%
   unique()
 
@@ -212,6 +215,8 @@ do.call(navset_pill_list, plots)
 
 ## Summary over time
 
+of top `r n_top_users` users for each spacesavers metric.
+
 ```{r summary_over_time}
 summary_dat_all <- user_dat %>%
   filter( # username %in% users_filter,
@@ -240,7 +245,7 @@ top_users <- summary_dat_all %>%
     TRUE ~ value
   )) %>%
   group_by(metric) %>%
-  slice_max(order_by = value_adj, n = 10) %>%
+  slice_max(order_by = value_adj, n = n_top_users) %>%
   pull(username) %>%
   unique()
 
