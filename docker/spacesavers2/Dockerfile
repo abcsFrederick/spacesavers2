@@ -9,7 +9,7 @@ ARG REPONAME="000000"
 ENV REPONAME=${REPONAME}
 
 # install pandoc & R packages
-COPY environment.txt /data/2
+COPY environment.txt /data/
 RUN mamba install -c conda-forge -c r --file environment.txt
 ENV R_LIBS_USER=/opt2/conda/lib/R/library/
 
