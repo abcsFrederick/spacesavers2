@@ -8,7 +8,6 @@ import uuid
 
 from src.VersionCheck import version_check
 from src.VersionCheck import __version__
-from src.VersionCheck import version_print
 
 version_check()
 
@@ -66,14 +65,7 @@ def main():
         action=argparse.BooleanOptionalAction,
         help="forcefully create symlink if hardlink is not possible",
     )
-    parser.add_argument(
-        "-v",
-        "--version",
-        dest="version",
-        required=False,
-        action=argparse.BooleanOptionalAction,
-        help="print version",
-    )
+    parser.add_argument("-v", "--version", action="version", version=__version__)
 
     global args
     args = parser.parse_args()

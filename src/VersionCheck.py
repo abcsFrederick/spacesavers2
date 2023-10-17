@@ -19,7 +19,3 @@ def version_check():
         exit(
             f"{sys.argv[0]} requires Python {'.'.join([str(n) for n in MIN_PYTHON])} or newer"
         )
-
-
-def version_print():
-    exit(f"version: {__version__}")
