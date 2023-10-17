@@ -10,6 +10,7 @@ QUOTA_TB = 20
 
 from src.VersionCheck import version_check
 from src.VersionCheck import __version__
+
 version_check()
 
 from src.FileDetails import FileDetails
@@ -20,19 +21,36 @@ from datetime import date
 
 import argparse
 
-def process_hh(uid,hashhash,hashhashsplits,mindepth,maxdepth,uid2uname,gid2gname,peruser_perfolder_summaries,user_output):
+
+def process_hh(
+    uid,
+    hashhash,
+    hashhashsplits,
+    mindepth,
+    maxdepth,
+    uid2uname,
+    gid2gname,
+    peruser_perfolder_summaries,
+    user_output,
+):
     for h in hashhash.keys():
         split_required = False
-        hashhash[h].compute(hashhashsplits,split_required)        # compute if split is needed or if we have duplicates
-        if split_required: continue                               # split is required so move on to the next hash
+        hashhash[h].compute(
+            hashhashsplits, split_required
+        )  # compute if split is needed or if we have duplicates
+        if split_required:
+            continue  # split is required so move on to the next hash
         uid_file_index = hashhash[h].get_user_file_index(uid)
-        if len(uid_file_index) == 0: continue
+        if len(uid_file_index) == 0:
+            continue
         uid_dup_file_index = []
         if hashhash[h].ndup > 1:
             for i in uid_file_index:
                 f = hashhash[h].flist[i]
-                fpaths = f.get_paths(mindepth,maxdepth)
-                if i == hashhash[h].oldest_index:   # its the original file ... not a duplicate
+                fpaths = f.get_paths(mindepth, maxdepth)
+                if (
+                    i == hashhash[h].oldest_index
+                ):  # its the original file ... not a duplicate
                     for p in fpaths:
                         peruser_perfolder_summaries[p].non_dup_Bytes.append(f.size)
                         peruser_perfolder_summaries[p].non_dup_ages.append(f.mtime)
@@ -41,137 +59,246 @@ def process_hh(uid,hashhash,hashhashsplits,mindepth,maxdepth,uid2uname,gid2gname
                     for p in fpaths:
                         peruser_perfolder_summaries[p].dup_Bytes.append(f.size)
                         peruser_perfolder_summaries[p].dup_ages.append(f.mtime)
-        else: # ndup == 1 .. meaning there are no duplicates .. just one file
+        else:  # ndup == 1 .. meaning there are no duplicates .. just one file
             for i in uid_file_index:
                 f = hashhash[h].flist[i]
-                fpaths = f.get_paths(mindepth,maxdepth)
+                fpaths = f.get_paths(mindepth, maxdepth)
                 for p in fpaths:
                     peruser_perfolder_summaries[p].non_dup_Bytes.append(f.size)
                     peruser_perfolder_summaries[p].non_dup_ages.append(f.mtime)
         if args.duplicatesonly:
             if len(uid_dup_file_index) > 0:
-                user_output.write("{}\n".format(hashhash[h].str_with_name(uid2uname,gid2gname,uid_dup_file_index)))
+                user_output.write(
+                    "{}\n".format(
+                        hashhash[h].str_with_name(
+                            uid2uname, gid2gname, uid_dup_file_index
+                        )
+                    )
+                )
         else:
-            user_output.write("{}\n".format(hashhash[h].str_with_name(uid2uname,gid2gname,uid_file_index)))
-
+            user_output.write(
+                "{}\n".format(
+                    hashhash[h].str_with_name(uid2uname, gid2gname, uid_file_index)
+                )
+            )
 
 
 def main():
     start = time.time()
     scriptname = os.path.basename(__file__)
-    elog=textwrap.dedent("""\
-    Version: 
+    elog = textwrap.dedent(
+        """\
+    Version:
         {}
-    Example: 
+    Example:
         > spacesavers2_mimeo -f /output/from/spacesavers2_catalog -o /path/to/output/folder -d 7 -q 10
-        """.format(__version__)) 
-    parser = argparse.ArgumentParser(description="spacesavers2_mimeo: find duplicates",
-                                     epilog=elog,formatter_class=argparse.RawDescriptionHelpFormatter)
-    
-    parser.add_argument("-f","--catalog",dest="lsout",required=True,type=str,default=sys.stdin,
-        help="spacesavers2_catalog output from STDIN or from catalog file")
+        """.format(
+            __version__
+        )
+    )
+    parser = argparse.ArgumentParser(
+        description="spacesavers2_mimeo: find duplicates",
+        epilog=elog,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
 
-    parser.add_argument("-d","--maxdepth",dest="maxdepth",required=False,type=int,default=10,
-        help="folder max. depth upto which reports are aggregated")
-    
-    parser.add_argument("-o","--outdir",dest="outdir",required=False,type=str,default=os.getcwd(),
-        help="output folder")
+    parser.add_argument(
+        "-f",
+        "--catalog",
+        dest="lsout",
+        required=True,
+        type=str,
+        default=sys.stdin,
+        help="spacesavers2_catalog output from STDIN or from catalog file",
+    )
 
-    parser.add_argument("-p","--prefix",dest="prefix",required=False,type=str,default="",
-        help="prefix for all output files")
-    
-    parser.add_argument("-q","--quota",dest="quota",required=False,type=float,default=200.0,
-        help="total quota of the mount eg. 200 TB for /data/CCBR")
-    
-    parser.add_argument('-z',"--duplicatesonly",dest="duplicatesonly",required=False,action=argparse.BooleanOptionalAction,
-        help="Print only duplicates to per user output file.")
+    parser.add_argument(
+        "-d",
+        "--maxdepth",
+        dest="maxdepth",
+        required=False,
+        type=int,
+        default=10,
+        help="folder max. depth upto which reports are aggregated",
+    )
 
-    print_with_timestamp(start=start,scriptname=scriptname,string="version: {}".format(__version__))
+    parser.add_argument(
+        "-o",
+        "--outdir",
+        dest="outdir",
+        required=False,
+        type=str,
+        default=os.getcwd(),
+        help="output folder",
+    )
+
+    parser.add_argument(
+        "-p",
+        "--prefix",
+        dest="prefix",
+        required=False,
+        type=str,
+        default="",
+        help="prefix for all output files",
+    )
+
+    parser.add_argument(
+        "-q",
+        "--quota",
+        dest="quota",
+        required=False,
+        type=float,
+        default=200.0,
+        help="total quota of the mount eg. 200 TB for /data/CCBR",
+    )
+
+    parser.add_argument(
+        "-z",
+        "--duplicatesonly",
+        dest="duplicatesonly",
+        required=False,
+        action=argparse.BooleanOptionalAction,
+        help="Print only duplicates to per user output file.",
+    )
+    parser.add_argument("-v", "--version", action="version", version=__version__)
+
+    print_with_timestamp(
+        start=start, scriptname=scriptname, string="version: {}".format(__version__)
+    )
 
     global args
     args = parser.parse_args()
     quota = args.quota * 1024 * 1024 * 1024 * 1024
 
-    
     uid2uname = dict()
     gid2gname = dict()
     hashhash = dict()
-    users = set()       # list of all users found
-    users.add(0)        # 0 == all users
-    groups = set()      # list of groups
+    users = set()  # list of all users found
+    users.add(0)  # 0 == all users
+    groups = set()  # list of groups
     paths = set()
     path_lens = []
-    print_with_timestamp(start=start,scriptname=scriptname,string="Reading in catalog file...")
-    set_complete=True       
+    print_with_timestamp(
+        start=start, scriptname=scriptname, string="Reading in catalog file..."
+    )
+    set_complete = True
     with open(args.lsout) as lsout:
         for l in lsout:
             fd = FileDetails()
-            set_complete=fd.set(l)
-            if not set_complete: continue
-            if fd.issyml: continue          # ignore all symlinks
+            set_complete = fd.set(l)
+            if not set_complete:
+                continue
+            if fd.issyml:
+                continue  # ignore all symlinks
             users.add(fd.uid)
             groups.add(fd.gid)
             path_lens.append(get_file_depth(fd.apath))
             for p in fd.get_paths_at_all_depths():
                 paths.add(p)
             hash = fd.xhash_top + "#" + fd.xhash_bottom
-            if hash == "#": # happens when file cannot be read
-                sys.stderr.write("Cannot read file listed in catalog and will be excluded from mimeo: {} \n".format(fd.apath))
+            if hash == "#":  # happens when file cannot be read
+                sys.stderr.write(
+                    "Cannot read file listed in catalog and will be excluded from mimeo: {} \n".format(
+                        fd.apath
+                    )
+                )
                 continue
-            if not hash in hashhash: hashhash[hash] = dfUnit(hash)
+            if not hash in hashhash:
+                hashhash[hash] = dfUnit(hash)
             hashhash[hash].add_fd(fd)
     min_path_len = min(path_lens)
     max_path_len = max(path_lens)
     if args.maxdepth > max_path_len:
-        mindepth = min_path_len 
+        mindepth = min_path_len
         maxdepth = max_path_len
     elif args.maxdepth > min_path_len:
         mindepth = min_path_len
         maxdepth = args.maxdepth
     else:
         mindepth = args.maxdepth
-        maxdepth = args.maxdepth 
+        maxdepth = args.maxdepth
 
     # filter paths by maxdepth
-    paths = list(filter(lambda x:get_folder_depth(x) <= maxdepth,paths))
-    paths = list(filter(lambda x:get_folder_depth(x) >= mindepth,paths))
+    paths = list(filter(lambda x: get_folder_depth(x) <= maxdepth, paths))
+    paths = list(filter(lambda x: get_folder_depth(x) >= mindepth, paths))
     # convert PosixPaths list to list of strings
-    paths = list(map(lambda x:str(x),paths))
+    paths = list(map(lambda x: str(x), paths))
     # sort paths for outfile aesthetics
     paths.sort()
     # reconvert to paths
-    paths = list(map(lambda x:Path(x),paths))
+    paths = list(map(lambda x: Path(x), paths))
     users = list(users)
     for uid in users:
         uid2uname[uid] = get_username_groupname(uid)
     for gid in groups:
         gid2gname[gid] = get_username_groupname(gid)
-    print_with_timestamp(start=start,scriptname=scriptname,string="Done reading in catalog file!")
-    print_with_timestamp(start=start,scriptname=scriptname,string="Total Number of paths: %d"%len(paths))
-    print_with_timestamp(start=start,scriptname=scriptname,string="Total Number of users: %d"%len(users))
-
+    print_with_timestamp(
+        start=start, scriptname=scriptname, string="Done reading in catalog file!"
+    )
+    print_with_timestamp(
+        start=start,
+        scriptname=scriptname,
+        string="Total Number of paths: %d" % len(paths),
+    )
+    print_with_timestamp(
+        start=start,
+        scriptname=scriptname,
+        string="Total Number of users: %d" % len(users),
+    )
 
     for uid in users:
-        print_with_timestamp(start=start,scriptname=scriptname,string="Gathering stats for user: %s"%(uid2uname[uid]))
+        print_with_timestamp(
+            start=start,
+            scriptname=scriptname,
+            string="Gathering stats for user: %s" % (uid2uname[uid]),
+        )
         if args.prefix != "":
             outfilenameprefix = args.prefix + "." + get_username_groupname(uid)
         else:
             outfilenameprefix = get_username_groupname(uid)
 
-        summaryfilepath = os.path.join(os.path.abspath(args.outdir),outfilenameprefix + ".summary.txt")
-        useroutputpath = os.path.join(os.path.abspath(args.outdir),outfilenameprefix + ".files.gz")
-        
-        with open(summaryfilepath,'w') as user_summary:
-            user_summary.write("%s\n"%(Summary.HEADER))
-        
-        with gzip.open(useroutputpath,'wt') as user_output, open(summaryfilepath, 'a') as user_summary:
+        summaryfilepath = os.path.join(
+            os.path.abspath(args.outdir), outfilenameprefix + ".summary.txt"
+        )
+        useroutputpath = os.path.join(
+            os.path.abspath(args.outdir), outfilenameprefix + ".files.gz"
+        )
+
+        with open(summaryfilepath, "w") as user_summary:
+            user_summary.write("%s\n" % (Summary.HEADER))
+
+        with gzip.open(useroutputpath, "wt") as user_output, open(
+            summaryfilepath, "a"
+        ) as user_summary:
             peruser_perfolder_summaries = dict()
             for p in paths:
                 peruser_perfolder_summaries[p] = Summary(p)
-            hashhashsplits = dict() # dict to collect instances where the files are NOT duplicates has same hashes but different sizes (and different inodes) ... new suffix is added to bottomhash .."_iterator"
-            process_hh(uid,hashhash,hashhashsplits,mindepth,maxdepth,uid2uname,gid2gname,peruser_perfolder_summaries,user_output)
+            hashhashsplits = (
+                dict()
+            )  # dict to collect instances where the files are NOT duplicates has same hashes but different sizes (and different inodes) ... new suffix is added to bottomhash .."_iterator"
+            process_hh(
+                uid,
+                hashhash,
+                hashhashsplits,
+                mindepth,
+                maxdepth,
+                uid2uname,
+                gid2gname,
+                peruser_perfolder_summaries,
+                user_output,
+            )
             hashhashsplitsdummy = dict()
-            process_hh(uid,hashhashsplits,hashhashsplitsdummy,mindepth,maxdepth,uid2uname,gid2gname,peruser_perfolder_summaries,user_output)
+            process_hh(
+                uid,
+                hashhashsplits,
+                hashhashsplitsdummy,
+                mindepth,
+                maxdepth,
+                uid2uname,
+                gid2gname,
+                peruser_perfolder_summaries,
+                user_output,
+            )
             for p in paths:
                 peruser_perfolder_summaries[p].update_scores(quota)
                 user_summary.write(f"{peruser_perfolder_summaries[p]}\n")
@@ -179,7 +306,8 @@ def main():
     del hashhash
     del hashhashsplits
     del hashhashsplitsdummy
-    print_with_timestamp(start=start,scriptname=scriptname,string="Finished!")
+    print_with_timestamp(start=start, scriptname=scriptname, string="Finished!")
 
 
-if __name__ == '__main__': main()
+if __name__ == "__main__":
+    main()
