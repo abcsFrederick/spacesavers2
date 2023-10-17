@@ -9,8 +9,8 @@ ARG REPONAME="000000"
 ENV REPONAME=${REPONAME}
 
 # install pandoc & R packages
-COPY environment.txt /data/
-RUN mamba install -c conda-forge -c r --file environment.txt
+COPY environment.txt /data2/
+RUN mamba install -c conda-forge -c r --file /data2/environment.txt
 ENV R_LIBS_USER=/opt2/conda/lib/R/library/
 
 # install quarto
