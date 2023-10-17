@@ -330,8 +330,6 @@ grub_dat <- user_dat %>%
   ) %>%
   mutate(across(all_of(c("total_disk_usage_value", "single_disk_usage_value")), as.numeric))
 
-grub_dat %>% write_tsv(here("results", glue("grub-dat_{today()}.tsv")))
-
 top_files <- grub_dat %>%
   arrange(order_by = desc(total_disk_usage_value)) %>%
   select(total_disk_usage_value, username, filepaths) %>%
