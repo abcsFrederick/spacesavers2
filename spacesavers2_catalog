@@ -2,6 +2,7 @@
 
 from src.VersionCheck import version_check
 from src.VersionCheck import __version__
+
 version_check()
 
 # import required modules
@@ -12,43 +13,101 @@ import sys
 from src.FileDetails import FileDetails
 from multiprocessing import Pool
 import argparse
+from pathlib import Path
+
 
 def task(f):
-    if not os.path.isfile(f): 
+    if not os.path.isfile(f):
         return ""
     else:
         fd = FileDetails()
-        fd.initialize(f,
-                      buffersize = args.buffersize,
-                      thresholdsize = args.ignoreheadersize,
-                      tb = args.buffersize,
-                      sed = sed,
-                      bottomhash = args.bottomhash)
-        return "%s"%(fd)
+        fd.initialize(
+            f,
+            buffersize=args.buffersize,
+            thresholdsize=args.ignoreheadersize,
+            tb=args.buffersize,
+            sed=sed,
+            bottomhash=args.bottomhash,
+        )
+        return "%s" % (fd)
+
 
 def main():
-    elog=textwrap.dedent("""\
-    Version: 
+    elog = textwrap.dedent(
+        """\
+    Version:
         {}
-    Example: 
+    Example:
         > spacesavers2_catalog -f /path/to/folder -p 56 -e
-        """.format(__version__))    
-    parser = argparse.ArgumentParser(description="spacesavers2_catalog: get per file info.", 
-                                     epilog=elog,formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("-f","--folder",dest="folder",required=True,type=str,
-    help="spacesavers2_catalog will be run on all files in this folder and its subfolders")
-    parser.add_argument("-p","--threads",dest="threads",required=False,type=int, default=4,
-    help="number of threads to be used")
-    parser.add_argument('-b',"--buffersize",dest="buffersize",required=False,type=int,default=128*1024,
-        help="buffersize for xhash creation")
-    parser.add_argument('-i',"--ignoreheadersize",dest="ignoreheadersize",required=False,type=int,default=1024*1024*1024,
-        help="this sized header of the file is ignored before extracting buffer of buffersize for xhash creation (only for special extension files)")
-    parser.add_argument('-s',"--se",dest="se",required=False,type=str,default='bam,bai,bigwig,bw,csi',
-        help="comma separated list of special extentions") 
-    parser.add_argument('-o',"--outfile",dest="outfile",required=False,type=str,
-        help="outfile ... catalog file .. by default output is printed to screen") 
-    parser.add_argument('-e',"--bottomhash",dest="bottomhash",required=False,action=argparse.BooleanOptionalAction,
-        help="separately calculated second hash for the bottom/end of the file.") 
+        """.format(
+            __version__
+        )
+    )
+    parser = argparse.ArgumentParser(
+        description="spacesavers2_catalog: get per file info.",
+        epilog=elog,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "-f",
+        "--folder",
+        dest="folder",
+        required=True,
+        type=str,
+        help="spacesavers2_catalog will be run on all files in this folder and its subfolders",
+    )
+    parser.add_argument(
+        "-p",
+        "--threads",
+        dest="threads",
+        required=False,
+        type=int,
+        default=4,
+        help="number of threads to be used",
+    )
+    parser.add_argument(
+        "-b",
+        "--buffersize",
+        dest="buffersize",
+        required=False,
+        type=int,
+        default=128 * 1024,
+        help="buffersize for xhash creation",
+    )
+    parser.add_argument(
+        "-i",
+        "--ignoreheadersize",
+        dest="ignoreheadersize",
+        required=False,
+        type=int,
+        default=1024 * 1024 * 1024,
+        help="this sized header of the file is ignored before extracting buffer of buffersize for xhash creation (only for special extensions files)",
+    )
+    parser.add_argument(
+        "-s",
+        "--se",
+        dest="se",
+        required=False,
+        type=str,
+        default="bam,bai,bigwig,bw,csi",
+        help="comma separated list of special extensions",
+    )
+    parser.add_argument(
+        "-o",
+        "--outfile",
+        dest="outfile",
+        required=False,
+        type=str,
+        help="outfile ... catalog file .. by default output is printed to screen",
+    )
+    parser.add_argument(
+        "-e",
+        "--bottomhash",
+        dest="bottomhash",
+        required=False,
+        action=argparse.BooleanOptionalAction,
+        help="separately calculated second hash for the bottom/end of the file.",
+    )
 
     global args
     args = parser.parse_args()
@@ -59,18 +118,22 @@ def main():
         sed[s] = 1
 
     folder = args.folder
-    files = glob.iglob(os.path.join(folder, "**/*"), recursive=True, include_hidden=True)
+    p = Path(folder)
+    files = p.glob("**/*")
 
     if args.outfile:
-        outfh = open(args.outfile,'w')
+        outfh = open(args.outfile, "w")
     else:
         outfh = sys.stdout
 
     with Pool(processes=args.threads) as pool:
-        for result in pool.imap_unordered(task,files):
-            if not result=="": outfh.write(f"{result}\n")
+        for result in pool.imap_unordered(task, files):
+            if not result == "":
+                outfh.write(f"{result}\n")
 
     if args.outfile:
         outfh.close()
 
-if __name__ == '__main__': main()
+
+if __name__ == "__main__":
+    main()
