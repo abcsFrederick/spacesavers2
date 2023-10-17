@@ -108,6 +108,7 @@ def main():
         action=argparse.BooleanOptionalAction,
         help="separately calculated second hash for the bottom/end of the file.",
     )
+    parser.add_argument("-v", "--version", action="version", version=__version__)
 
     global args
     args = parser.parse_args()
