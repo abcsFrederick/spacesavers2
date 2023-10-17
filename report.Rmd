@@ -38,8 +38,13 @@ library(stringr)
 library(tidyr)
 theme_set(theme_bw())
 
-bytes_to_tb <- function(x) {
-  return(x / (1024^4))
+convert_bytes <- function(x, to_unit) {
+  units <- list(
+    MiB = 2,
+    GiB = 3,
+    TiB = 4
+  )
+  return(x / (1024^units[[to_unit]]))
 }
 
 filter_users <- function(dat, usercol = username) {
@@ -87,7 +92,7 @@ total_usage_tb <- user_dat %>%
   pull(filename) %>%
   read_tsv() %>%
   filter(FolderPath == "/data/CCBR") %>%
-  mutate(disk_usage_tb = bytes_to_tb(TotalBytes)) %>%
+  mutate(disk_usage_tb = convert_bytes(TotalBytes, "TiB")) %>%
   pull(disk_usage_tb)
 # TODO disk_usage_tb doesn't agree with output from `df`
 
@@ -219,6 +224,13 @@ panel_summary <- function(dat,
       arrange(by = value_adj) %>%
       pull(username) %>%
       unique()
+    if (y_metric == "TotalBytes" | y_metric == "DuplicateBytes") {
+      to_unit <- "TiB" # TODO: dynamically set based on range of metric
+      new_metric_name <- glue("{y_metric}_{to_unit}")
+      summary_dat_folder <- summary_dat_folder %>%
+        mutate("{new_metric_name}" := convert_bytes(eval_tidy(data_sym(y_metric)), to_unit))
+      y_metric <- new_metric_name
+    }
     p <- summary_dat_folder %>%
       filter(username %in% user_order) %>%
       mutate(username = factor(username, levels = user_order)) %>%
