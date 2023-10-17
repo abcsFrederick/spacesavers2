@@ -25,6 +25,7 @@ library(DT)
 library(ggplot2)
 library(glue)
 library(here)
+library(knitr)
 library(lubridate)
 library(plotly)
 library(purrr)
@@ -36,7 +37,7 @@ library(tidyr)
 theme_set(theme_bw())
 
 bytes_to_tb <- function(x) {
-  return(x / (10^12))
+  return(x / (1024^4))
 }
 
 filter_users <- function(dat, usercol = username) {
@@ -106,7 +107,7 @@ usernames <- user_dat %>%
 user_dat %>% write_tsv(here("results", glue("user-dat_{today()}.tsv")))
 ```
 
-```{sh df, eval=dir.exists('/data/CCBR')}
+```{sh df, eval=dir.exists('/data/CCBR'), echo = FALSE}
 today=`date +"%Y-%m-%d"`
 df -h /data/CCBR |\
   awk -v today="$today" 'NR==1{$(NF+1)="date"} NR>1{$(NF+1)=today}1' |\
@@ -126,7 +127,7 @@ df_date <- disk_usage %>%
 ```{r disk_usage}
 disk_usage %>%
   select(Size, Used, `Use%`) %>%
-  datatable()
+  knitr::kable()
 ```
 
 ## Most recent summary (`r most_recent_date`)
@@ -271,14 +272,11 @@ do.call(navset_pill_list, plots)
 ## High value duplicate files (`r most_recent_date`)
 
 ```{r grubbers}
-grub_dat <- list.files(
-  here(
-    input_dir,
-    format(most_recent_date, format = "%Y%m%d")
-  ),
-  full.names = TRUE
-) %>%
-  Filter(function(x) str_detect(x, "_data_CCBR\\..*\\.grubbers\\.tsv"), .) %>%
+grub_dat <- user_dat %>%
+  filter_users() %>%
+  filter(!is.na(date), file == "grubbers", ext == "tsv", path == "_data_CCBR") %>%
+  slice_max(order_by = date) %>%
+  pull(filename) %>%
   map(function(x) {
     read_tsv(x, col_names = FALSE) %>%
       mutate(filename = x)
@@ -296,10 +294,7 @@ grub_dat <- list.files(
     names = c("date", "path", "username", "file", "ext")
   ) %>%
   mutate(date = as_date(basename(date))) %>%
-  filter(
-    !str_detect(username, "[0-9]"), # filter out numeric usernames
-    username != "allusers" # filter out the 'allusers' rows
-  ) %>%
+  filter_users() %>%
   separate_wider_delim(total_disk_usage,
     delim = " ",
     names = c("total_disk_usage_value", "total_disk_usage_unit"),
