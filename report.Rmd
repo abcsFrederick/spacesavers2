@@ -91,16 +91,20 @@ total_usage_tb <- user_dat %>%
   pull(disk_usage_tb)
 # TODO disk_usage_tb doesn't agree with output from `df`
 
-grubbers_summary <- user_dat %>%
+grubbers_allusers_err <- user_dat %>%
   filter(
     username == "allusers",
     date == most_recent_date,
     file == "grubbers",
-    ext == "txt",
+    ext == "err",
     path == "_data_CCBR"
   ) %>%
   pull(filename) %>%
-  read_tsv()
+  read_lines()
+grubbers_message <- grubbers_allusers_err[2] %>%
+  str_split(":") %>%
+  unlist() %>%
+  .[3]
 
 user_dat <- user_dat %>% filter_users()
 usernames <- user_dat %>%
@@ -275,6 +279,8 @@ navset_tab(
 
 
 ## High value duplicate files (`r most_recent_date`)
+
+`r grubbers_message`
 
 ```{r grubbers}
 grub_dat <- user_dat %>%
