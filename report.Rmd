@@ -140,7 +140,8 @@ layout_column_wrap(
     value = markdown(disk_usage %>%
       mutate(Usage = glue("{Used} / {Size}")) %>%
       select(Usage, `Use%`) %>%
-      kable())
+      kable()),
+    theme = "danger"
   ),
   value_box(
     title = markdown("Users"),
