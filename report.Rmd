@@ -35,6 +35,19 @@ library(stringr)
 library(tidyr)
 theme_set(theme_bw())
 
+bytes_to_tb <- function(x) {
+  return(x / (10^12))
+}
+
+filter_users <- function(dat, usercol = username) {
+  non_people <- c("allusers", "rpcuser", "slurm")
+  dat %>%
+    filter(
+      !({{ usercol }} %in% non_people), # not actual people
+      !str_detect({{ usercol }}, "[0-9]") # entirely numeric usernames
+    )
+}
+
 input_dir <- params$input_dir # here("data")
 aggregated_filetypes <- c("blamematrix", "catalog", "mimeo")
 # TODO: only load last N weeks of data to keep RAM usage reasonably low
@@ -52,22 +65,68 @@ user_dat <- tibble(filename = list.dirs(input_dir) %>%
     names = c("date", "path", "username", "file", "ext"),
     too_few = "debug"
   ) %>%
-  filter(
-    str_detect(ext, "tsv|txt"), # only keep tab-delimited files
-    !str_detect(username, "[0-9]"), # filter out numeric usernames
-    username != "allusers" # filter out the 'allusers' rows
-  ) %>%
   mutate(date = as_date(basename(date)))
 
 dates <- user_dat %>%
+  filter(!is.na(date)) %>%
   pull(date) %>%
   unique()
 most_recent_date <- dates %>% max()
+
+total_usage_tb <- user_dat %>%
+  filter(
+    username == "allusers",
+    date == most_recent_date,
+    file == "summary",
+    path == "_data_CCBR"
+  ) %>%
+  pull(filename) %>%
+  read_tsv() %>%
+  filter(FolderPath == "/data/CCBR") %>%
+  mutate(disk_usage_tb = bytes_to_tb(TotalBytes)) %>%
+  pull(disk_usage_tb)
+# TODO disk_usage_tb doesn't agree with output from `df`
+
+grubbers_summary <- user_dat %>%
+  filter(
+    username == "allusers",
+    date == most_recent_date,
+    file == "grubbers",
+    ext == "txt",
+    path == "_data_CCBR"
+  ) %>%
+  pull(filename) %>%
+  read_tsv()
+
+user_dat <- user_dat %>% filter_users()
 usernames <- user_dat %>%
   pull(username) %>%
   unique()
 
 user_dat %>% write_tsv(here("results", glue("user-dat_{today()}.tsv")))
+```
+
+```{sh df, eval=dir.exists('/data/CCBR')}
+today=`date +"%Y-%m-%d"`
+df -h /data/CCBR |\
+  awk -v today="$today" 'NR==1{$(NF+1)="date"} NR>1{$(NF+1)=today}1' |\
+  sed -E 's/Mounted on/Mounted_on/' |\
+  sed -E 's/ +/\t/g' > results/disk_usage.txt
+```
+
+```{r read_df}
+disk_usage <- read_tsv(here("results", "disk_usage.txt"))
+df_date <- disk_usage %>%
+  pull("date") %>%
+  as_date()
+```
+
+## Total disk usage in `/data/CCBR` as of `r df_date`
+
+```{r disk_usage}
+disk_usage %>%
+  select(Size, Used, `Use%`) %>%
+  datatable()
 ```
 
 ## Most recent summary (`r most_recent_date`)
