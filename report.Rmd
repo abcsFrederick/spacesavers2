@@ -30,6 +30,7 @@ library(plotly)
 library(purrr)
 library(readr)
 library(rlang)
+library(scales)
 library(stringr)
 library(tidyr)
 theme_set(theme_bw())
@@ -109,7 +110,12 @@ top_users <- summary_dat_recent %>%
   pull(username) %>%
   unique()
 
-plots <- summary_metrics %>% lapply(function(y_metric) {
+is_large_range <- function(x, n_orders_magnitude = 5) {
+  xrange <- range(x)
+  return((xrange[2] - xrange[1]) >= 10^n_orders_magnitude)
+}
+
+plots <- summary_metrics %>% lapply(function(x_metric) {
   user_order <- summary_dat_recent %>%
     filter(username %in% top_users) %>%
     pivot_longer(where(is.numeric),
@@ -119,22 +125,25 @@ plots <- summary_metrics %>% lapply(function(y_metric) {
       str_detect(metric, "[sS]core") ~ -value,
       TRUE ~ value
     )) %>%
-    filter(metric == y_metric) %>%
+    filter(metric == x_metric) %>%
     arrange(by = value_adj) %>%
     pull(username)
-  p <- summary_dat_recent %>%
+  dat <- summary_dat_recent %>%
     filter(username %in% top_users) %>%
-    mutate(username = factor(username, levels = user_order)) %>%
+    mutate(username = factor(username, levels = user_order))
+  p <- dat %>%
     ggplot(aes(
-      x = eval_tidy(data_sym(y_metric)),
+      x = eval_tidy(data_sym(x_metric)),
       y = username,
-      fill = eval_tidy(data_sym(y_metric)),
-      text = glue("{username}\n{y_metric}\n{FolderPath}")
+      fill = eval_tidy(data_sym(x_metric)),
+      text = glue("{username}\n{x_metric}\n{FolderPath}")
     )) +
     geom_col() +
-    labs(x = y_metric, y = "") +
+    # TODO: ggplotly doesn't know what to do with scale::label_log
+    # {if (is_large_range(dat %>% pull(x_metric))) scale_x_log10(labels = label_log(digits = 2)) } +
+    labs(x = x_metric, y = "") +
     theme(legend.position = "none")
-  nav_panel(title = y_metric, card_header(y_metric), ggplotly(p, tooltip = "text"))
+  nav_panel(title = x_metric, card_header(x_metric), ggplotly(p, tooltip = "text"))
 })
 do.call(navset_pill_list, plots)
 ```
