@@ -107,6 +107,8 @@ usernames <- user_dat %>%
 user_dat %>% write_tsv(here("results", glue("user-dat_{today()}.tsv")))
 ```
 
+## Total disk usage
+
 ```{sh df, eval=dir.exists('/data/CCBR'), echo = FALSE}
 today=`date +"%Y-%m-%d"`
 df -h /data/CCBR |\
@@ -122,7 +124,7 @@ df_date <- disk_usage %>%
   as_date()
 ```
 
-## Total disk usage in `/data/CCBR` as of `r df_date`
+in `/data/CCBR` as of `r df_date`
 
 ```{r disk_usage}
 disk_usage %>%
@@ -162,7 +164,7 @@ top_users <- summary_dat_recent %>%
     names_to = "metric"
   ) %>%
   mutate(value_adj = case_when(
-    str_detect(metric, "[sS]core") ~ -value,
+    metric == "OverallScore" ~ -value,
     TRUE ~ value
   )) %>%
   group_by(metric) %>%
@@ -182,7 +184,7 @@ plots <- summary_metrics %>% lapply(function(x_metric) {
       names_to = "metric"
     ) %>%
     mutate(value_adj = case_when(
-      str_detect(metric, "[sS]core") ~ -value,
+      metric == "OverallScore" ~ -value,
       TRUE ~ value
     )) %>%
     filter(metric == x_metric) %>%
@@ -234,7 +236,7 @@ top_users <- summary_dat_all %>%
     names_to = "metric"
   ) %>%
   mutate(value_adj = case_when(
-    str_detect(metric, "[sS]core") ~ -value,
+    metric == "OverallScore" ~ -value,
     TRUE ~ value
   )) %>%
   group_by(metric) %>%
