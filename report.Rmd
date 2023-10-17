@@ -125,17 +125,18 @@ df_date <- disk_usage %>%
   as_date()
 ```
 
-All `length(usernames)` users in `/data/CCBR` on Biowulf as of `r df_date`
+All `r length(usernames)` users in `/data/CCBR` on Biowulf as of `r df_date`
 
 ```{r disk_usage}
-disk_usage %>%
+disk_usage_table <- disk_usage %>%
   select(Size, Used, `Use%`) %>%
   knitr::kable()
+card(markdown(disk_usage_table))
 ```
 
 ## Most recent summary (`r most_recent_date`)
 
-Usage in `/data/CCBR` of top `r n_top_users` users for each spacesavers metric.
+Usage by top users for each spacesavers metric.
 
 ```{r summary_recent}
 summary_dat_recent <- user_dat %>%
@@ -150,28 +151,11 @@ summary_dat_recent <- user_dat %>%
   separate_wider_delim(filename,
     delim = ".", cols_remove = FALSE,
     names = c("basepath", "path", "username", "file", "ext")
-  ) %>%
-  filter(FolderPath == "/data/CCBR")
-
-summary_dat_recent %>% write_tsv(here("results", glue("summary-dat-recent_{today()}.tsv")))
+  )
 
 summary_metrics <- summary_dat_recent %>%
   pivot_longer(where(is.numeric), names_to = "metric") %>%
   pull(metric) %>%
-  unique()
-
-
-top_users <- summary_dat_recent %>%
-  pivot_longer(all_of(summary_metrics),
-    names_to = "metric"
-  ) %>%
-  mutate(value_adj = case_when(
-    metric == "OverallScore" ~ -value,
-    TRUE ~ value
-  )) %>%
-  group_by(metric) %>%
-  slice_max(order_by = value_adj, n = n_top_users) %>%
-  pull(username) %>%
   unique()
 
 is_large_range <- function(x, n_orders_magnitude = 5) {
@@ -179,23 +163,8 @@ is_large_range <- function(x, n_orders_magnitude = 5) {
   return((xrange[2] - xrange[1]) >= 10^n_orders_magnitude)
 }
 
-plots <- summary_metrics %>% lapply(function(x_metric) {
-  user_order <- summary_dat_recent %>%
-    filter(username %in% top_users) %>%
-    pivot_longer(where(is.numeric),
-      names_to = "metric"
-    ) %>%
-    mutate(value_adj = case_when(
-      metric == "OverallScore" ~ -value,
-      TRUE ~ value
-    )) %>%
-    filter(metric == x_metric) %>%
-    arrange(by = value_adj) %>%
-    pull(username)
-  dat <- summary_dat_recent %>%
-    filter(username %in% top_users) %>%
-    mutate(username = factor(username, levels = user_order))
-  p <- dat %>%
+plot_user_metric <- function(dat, x_metric) {
+  dat %>%
     ggplot(aes(
       x = eval_tidy(data_sym(x_metric)),
       y = username,
@@ -207,42 +176,8 @@ plots <- summary_metrics %>% lapply(function(x_metric) {
     # {if (is_large_range(dat %>% pull(x_metric))) scale_x_log10(labels = label_log(digits = 2)) } +
     labs(x = x_metric, y = "") +
     theme(legend.position = "none")
-  nav_panel(title = x_metric, card_header(x_metric), ggplotly(p, tooltip = "text"))
-})
-do.call(navset_pill_list, plots)
-```
-
-## Summary over time
-
-of top `r n_top_users` users for each spacesavers metric.
-
-```{r summary_over_time}
-summary_dat_all <- user_dat %>%
-  filter(
-    file == "summary"
-  ) %>%
-  pull(filename) %>%
-  map(function(x) {
-    read_tsv(x) %>% mutate(filename = x)
-  }) %>%
-  list_rbind() %>%
-  separate_wider_delim(filename,
-    delim = ".", cols_remove = FALSE,
-    names = c("basepath", "path", "username", "file", "ext")
-  ) %>%
-  mutate(date = str_replace(basepath, ".*/", "") %>% as_date())
-
-plot_metric_time <- function(dat, y_metric) {
-  dat %>%
-    ggplot(aes(
-      x = date,
-      y = eval_tidy(data_sym(y_metric)),
-      color = username
-    )) +
-    geom_line(alpha = 0.7) +
-    geom_point(aes(text = glue("{username}\n{y_metric}\n{FolderPath}\n{date}"))) +
-    labs(y = y_metric)
 }
+
 panel_summary <- function(dat,
                           folder_path = "/data/CCBR",
                           plot_fcn = plot_metric_time) {
@@ -272,9 +207,11 @@ panel_summary <- function(dat,
       )) %>%
       filter(metric == y_metric) %>%
       arrange(by = value_adj) %>%
-      pull(username)
+      pull(username) %>%
+      unique()
     p <- summary_dat_folder %>%
       filter(username %in% user_order) %>%
+      mutate(username = factor(username, levels = user_order)) %>%
       plot_fcn(y_metric)
     nav_panel(title = y_metric, card_header(y_metric), ggplotly(p, tooltip = "text"))
   })
@@ -282,6 +219,45 @@ panel_summary <- function(dat,
     title = markdown(glue("`{folder_path}`")),
     do.call(navset_pill_list, plots)
   )
+}
+
+navset_tab(
+  summary_dat_recent %>% panel_summary("/data/CCBR", plot_user_metric),
+  summary_dat_recent %>% panel_summary("/data/CCBR/rawdata", plot_user_metric),
+  summary_dat_recent %>% panel_summary("/data/CCBR/projects", plot_user_metric),
+)
+```
+
+## Summary over time
+
+Usage by top users for each spacesavers metric.
+
+```{r summary_over_time}
+summary_dat_all <- user_dat %>%
+  filter(
+    file == "summary"
+  ) %>%
+  pull(filename) %>%
+  map(function(x) {
+    read_tsv(x) %>% mutate(filename = x)
+  }) %>%
+  list_rbind() %>%
+  separate_wider_delim(filename,
+    delim = ".", cols_remove = FALSE,
+    names = c("basepath", "path", "username", "file", "ext")
+  ) %>%
+  mutate(date = str_replace(basepath, ".*/", "") %>% as_date())
+
+plot_metric_time <- function(dat, y_metric) {
+  dat %>%
+    ggplot(aes(
+      x = date,
+      y = eval_tidy(data_sym(y_metric)),
+      color = username
+    )) +
+    geom_line(alpha = 0.7) +
+    geom_point(aes(text = glue("{username}\n{y_metric}\n{FolderPath}\n{date}"))) +
+    labs(y = y_metric)
 }
 
 navset_tab(
