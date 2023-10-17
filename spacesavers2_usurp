@@ -8,6 +8,7 @@ import uuid
 
 from src.VersionCheck import version_check
 from src.VersionCheck import __version__
+from src.VersionCheck import version_print
 
 version_check()
 
@@ -65,13 +66,24 @@ def main():
         action=argparse.BooleanOptionalAction,
         help="forcefully create symlink if hardlink is not possible",
     )
-
-    print_with_timestamp(
-        start=start, scriptname=scriptname, string="version: {}".format(__version__)
+    parser.add_argument(
+        "-v",
+        "--version",
+        dest="version",
+        required=False,
+        action=argparse.BooleanOptionalAction,
+        help="print version",
     )
 
     global args
     args = parser.parse_args()
+
+    if args.version:
+        version_print()
+
+    print_with_timestamp(
+        start=start, scriptname=scriptname, string="version: {}".format(__version__)
+    )
 
     total_saved = 0
     with open(args.grubber, "rt") as grubbers:
