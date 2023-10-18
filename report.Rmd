@@ -23,6 +23,7 @@ knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 library(bslib)
 library(dplyr)
 library(DT)
+library(fontawesome)
 library(ggplot2)
 library(glue)
 library(here)
@@ -141,11 +142,14 @@ layout_column_wrap(
       mutate(Usage = glue("{Used} / {Size}")) %>%
       select(Usage, `Use%`) %>%
       kable()),
-    theme = "danger"
+    showcase = fa("hard-drive"),
+    theme = "warning"
   ),
   value_box(
     title = markdown("Users"),
-    value = markdown(glue("{length(usernames)} users as of\n{df_date}"))
+    value = markdown(glue("{length(usernames)} users as of\n{df_date}")),
+    showcase = fa("users"),
+    theme = "primary"
   )
 )
 ```

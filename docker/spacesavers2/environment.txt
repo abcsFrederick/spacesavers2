@@ -6,6 +6,7 @@ r-bslib=0.5.1
 r-crosstalk
 r-downlit
 r-dplyr
+r-fontawesome
 r-ggplot2
 r-glue
 r-here
