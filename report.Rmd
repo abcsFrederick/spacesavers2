@@ -27,6 +27,7 @@ library(fontawesome)
 library(ggplot2)
 library(glue)
 library(here)
+library(htmltools)
 library(knitr)
 library(lubridate)
 library(plotly)
@@ -137,18 +138,16 @@ df_date <- disk_usage %>%
 layout_column_wrap(
   width = 1 / 2,
   value_box(
-    title = markdown("Disk space in /data/CCBR"),
+    title = p(fa("hard-drive"), "  Disk space in /data/CCBR"),
     value = markdown(disk_usage %>%
       mutate(Usage = glue("{Used} / {Size}")) %>%
       select(Usage, `Use%`) %>%
       kable()),
-    showcase = fa("hard-drive"),
     theme = "warning"
   ),
   value_box(
-    title = markdown("Users"),
-    value = markdown(glue("{length(usernames)} users as of\n{df_date}")),
-    showcase = fa("users"),
+    title = p(fa("users", prefer_type = "regular"), "  Users"),
+    value = p(glue("{length(usernames)} users as of {format(df_date, '%b %d, %Y')}")),
     theme = "primary"
   )
 )
