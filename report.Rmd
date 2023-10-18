@@ -137,7 +137,7 @@ df_date <- disk_usage %>%
 layout_column_wrap(
   width = 1 / 2,
   value_box(
-    title = markdown("Disk space in `/data/CCBR`"),
+    title = markdown("Disk space in /data/CCBR"),
     value = markdown(disk_usage %>%
       mutate(Usage = glue("{Used} / {Size}")) %>%
       select(Usage, `Use%`) %>%
