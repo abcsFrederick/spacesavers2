@@ -40,14 +40,21 @@ library(stringr)
 library(tidyr)
 theme_set(theme_bw())
 
-convert_bytes <- function(x, to_unit) {
-  units <- list(
+to_bytes <- function(x, from_unit) {
+  bytes_units <- list(
+    KiB = 1,
     MiB = 2,
     GiB = 3,
     TiB = 4
   )
-  return(x / (1024^units[[to_unit]]))
+  return(x * (1024^bytes_units[[from_unit]]))
 }
+from_bytes <- function(x, to_unit) {
+  return(x * x / (to_bytes(x, to_unit)))
+}
+
+from_bytes_v <- Vectorize(from_bytes)
+to_bytes_v <- Vectorize(to_bytes)
 
 filter_users <- function(dat, usercol = username) {
   non_people <- c("allusers", "rpcuser", "slurm")
@@ -94,7 +101,7 @@ total_usage_tb <- user_dat %>%
   pull(filename) %>%
   read_tsv() %>%
   filter(FolderPath == "/data/CCBR") %>%
-  mutate(disk_usage_tb = convert_bytes(TotalBytes, "TiB")) %>%
+  mutate(disk_usage_tb = from_bytes(TotalBytes, "TiB")) %>%
   pull(disk_usage_tb)
 # TODO disk_usage_tb doesn't agree with output from `df`
 
@@ -232,7 +239,7 @@ panel_summary <- function(dat,
       to_unit <- "TiB" # TODO: dynamically set based on range of metric
       new_metric_name <- glue("{y_metric}_{to_unit}")
       summary_dat_folder <- summary_dat_folder %>%
-        mutate("{new_metric_name}" := convert_bytes(eval_tidy(data_sym(y_metric)), to_unit))
+        mutate("{new_metric_name}" := from_bytes(eval_tidy(data_sym(y_metric)), to_unit))
       y_metric <- new_metric_name
     }
     p <- summary_dat_folder %>%
@@ -294,9 +301,58 @@ navset_tab(
 ```
 
 
-## High value duplicate files (`r most_recent_date`)
+## High-value duplicate files (`r most_recent_date`)
 
 `r grubbers_message`
+
+### Potential savings per user
+
+```{r grub_err}
+grub_err <- user_dat %>%
+  filter_users() %>%
+  filter(!is.na(date), file == "grubbers", ext == "err", path == "_data_CCBR") %>%
+  slice_max(order_by = date) %>%
+  pull(filename) %>%
+  map(function(x) {
+    read_tsv(x, col_names = FALSE) %>%
+      mutate(filename = x)
+  }) %>%
+  list_rbind() %>%
+  filter(str_detect(X1, "Deleting")) %>%
+  separate_wider_delim(filename,
+    delim = ".", cols_remove = FALSE,
+    names = c("date", "path", "username", "file", "ext")
+  ) %>%
+  mutate(
+    date = as_date(basename(date)),
+    grub_msg = str_replace_all(X1, regex("^.*:"), ""),
+    savings_value = as.numeric(
+      str_replace_all(
+        grub_msg,
+        regex(".*save ([\\d\\.]*) [\\w!]+"),
+        "\\1"
+      )
+    ),
+    savings_unit = str_replace_all(
+      grub_msg,
+      regex(".*save [\\d\\.]* ([\\w]+)!"),
+      "\\1"
+    ),
+    savings_bytes = to_bytes_v(savings_value, savings_unit)
+  )
+
+user_grub_table <- grub_err %>%
+  arrange(desc(savings_bytes)) %>%
+  select(username, savings_value, savings_unit)
+
+card(
+  card_header("Savings per user"),
+  datatable(user_grub_table, fillContainer = TRUE)
+)
+```
+
+
+### All high-value duplicates
 
 ```{r grubbers}
 grub_dat <- user_dat %>%
