@@ -76,13 +76,25 @@ plot_user_metric <- function(dat, x_metric) {
       x = eval_tidy(data_sym(x_metric)),
       y = username,
       fill = eval_tidy(data_sym(x_metric)),
-      text = glue("{username}\n{x_metric}\n{FolderPath}")
+      text = glue("{username}\n{eval_tidy(data_sym(x_metric))} {x_metric}")
     )) +
     geom_col() +
     # TODO: ggplotly doesn't know what to do with scale::label_log
     # {if (is_large_range(dat %>% pull(x_metric))) scale_x_log10(labels = label_log(digits = 2)) } +
     labs(x = x_metric, y = "") +
     theme(legend.position = "none")
+}
+
+plot_metric_time <- function(dat, y_metric) {
+  dat %>%
+    ggplot(aes(
+      x = date,
+      y = eval_tidy(data_sym(y_metric)),
+      color = username
+    )) +
+    geom_line(alpha = 0.7) +
+    geom_point(aes(text = glue("{username}\n{eval_tidy(data_sym(y_metric))} {y_metric}"))) +
+    labs(y = y_metric)
 }
 
 panel_summary <- function(dat,
@@ -127,10 +139,16 @@ panel_summary <- function(dat,
       summary_dat_folder <- summary_dat_folder %>%
         rename("{new_metric_name}" := y_metric)
       y_metric <- new_metric_name
+    } else if (y_metric == "TotalFiles" | y_metric == "DuplicateFiles") {
+      new_metric_name <- glue("{y_metric}_Millions")
+      summary_dat_folder <- summary_dat_folder %>%
+        mutate("{new_metric_name}" := eval_tidy(data_sym(y_metric)) / 10^6)
+      y_metric <- new_metric_name
     }
     p <- summary_dat_folder %>%
       filter(username %in% user_order) %>%
       mutate(username = factor(username, levels = user_order)) %>%
+      mutate(across(where(is.numeric), round, digits = 2)) %>%
       plot_fcn(y_metric)
     nav_panel(title = y_metric, card_header(y_metric), ggplotly(p, tooltip = "text"))
   })
@@ -275,18 +293,6 @@ summary_dat_all <- user_dat %>%
     names = c("basepath", "path", "username", "file", "ext")
   ) %>%
   mutate(date = str_replace(basepath, ".*/", "") %>% as_date())
-
-plot_metric_time <- function(dat, y_metric) {
-  dat %>%
-    ggplot(aes(
-      x = date,
-      y = eval_tidy(data_sym(y_metric)),
-      color = username
-    )) +
-    geom_line(alpha = 0.7) +
-    geom_point(aes(text = glue("{username}\n{y_metric}\n{FolderPath}\n{date}"))) +
-    labs(y = y_metric)
-}
 
 navset_tab(
   summary_dat_all %>% panel_summary("/data/CCBR", plot_metric_time),
