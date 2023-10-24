@@ -122,6 +122,11 @@ panel_summary <- function(dat,
       summary_dat_folder <- summary_dat_folder %>%
         mutate("{new_metric_name}" := from_bytes(eval_tidy(data_sym(y_metric)), to_unit))
       y_metric <- new_metric_name
+    } else if (y_metric == "TotalMeanAge" | y_metric == "DuplicateMeanAge") {
+      new_metric_name <- glue("{y_metric}_Days")
+      summary_dat_folder <- summary_dat_folder %>%
+        rename("{new_metric_name}" := y_metric)
+      y_metric <- new_metric_name
     }
     p <- summary_dat_folder %>%
       filter(username %in% user_order) %>%
