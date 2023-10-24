@@ -397,3 +397,7 @@ top_files <- grub_dat %>%
 
 card(card_header("Top files"), datatable(top_files, fillContainer = TRUE))
 ```
+
+
+For instructions on how to replace duplicates with hard links, see the
+[`usurp` command in the spacesavers docs](https://ccbr.github.io/spacesavers2/usurp/).
