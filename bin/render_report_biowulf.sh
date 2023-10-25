@@ -5,3 +5,5 @@ module load singularity
 SINGULARITY_CACHEDIR=/data/CCBR_Pipeliner/SIFS
 echo "cd /mnt && Rscript bin/render.R" |\
     singularity exec -C -B $PWD:/mnt,/data/CCBR_Pipeliner/userdata/spacesavers2/:/mnt/data docker://nciccbr/spacesavers2:0.1.1 bash
+today=$(date +'%Y-%m-%d')
+cp docs/report.html docs/report_${today}.html
