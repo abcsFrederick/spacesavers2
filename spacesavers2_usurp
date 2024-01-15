@@ -65,13 +65,17 @@ def main():
         action=argparse.BooleanOptionalAction,
         help="forcefully create symlink if hardlink is not possible",
     )
+    parser.add_argument("-v", "--version", action="version", version=__version__)
+
+    global args
+    args = parser.parse_args()
+
+    if args.version:
+        version_print()
 
     print_with_timestamp(
         start=start, scriptname=scriptname, string="version: {}".format(__version__)
     )
-
-    global args
-    args = parser.parse_args()
 
     total_saved = 0
     with open(args.grubber, "rt") as grubbers:

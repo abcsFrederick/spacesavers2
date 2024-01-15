@@ -1,0 +1,17 @@
+**/.koparde*
+**/.DS_Store
+**/__pycache__
+**/.**.swp
+**/slurm-*
+
+# mkdocs documentation
+/site
+**/test.py
+**/test/
+
+# data
+/data/
+
+# R
+.Rproj.user
+*.Rproj
