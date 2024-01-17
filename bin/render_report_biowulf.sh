@@ -15,3 +15,7 @@ echo "cd /mnt && \
     cp docs/report.html $html_filename && \
     python src/send_email.py $html_filename $receiver_email " |\
     singularity exec -C -B $PWD:/mnt,/data/CCBR_Pipeliner/userdata/spacesavers2/:/mnt/data docker://nciccbr/spacesavers2:0.1.1 bash
+
+git add docs
+git commit -m 'chore: render report 🤖'
+git push
