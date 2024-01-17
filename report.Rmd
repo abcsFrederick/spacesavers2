@@ -12,12 +12,15 @@ output:
 params:
   input_dir: '/data/CCBR_Pipeliner/userdata/spacesavers2/'
   n_top_users: 10
+  url: '<https://ccbr.github.io/report_`r lubridate::today()`.html>'
 knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs/") })
 ---
 ```{r setup}
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 ```
+
+View this report on the web: `r params$url`
 
 ```{r load}
 library(bslib)
