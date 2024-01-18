@@ -21,6 +21,8 @@ knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 
 View this report on the web: `r glue::glue("<https://ccbr.github.io/spacesavers2/{lubridate::year(lubridate::today())}/spacesavers2-report_{lubridate::today()}.html>")`
 
+Notice a bug or want to make a suggestion for this report? [Open an issue](https://github.com/CCBR/spacesavers2/issues) on GitHub.
+
 ```{r load}
 library(bslib)
 library(dplyr)
