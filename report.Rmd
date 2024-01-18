@@ -19,7 +19,7 @@ knit: (function(inputFile, encoding) {
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 ```
 
-View this report on the web: `r glue::glue("<https://ccbr.github.io/spacesavers2/{lubridate::year(lubridate::today())}/report_{lubridate::today()}.html>")`
+View this report on the web: `r glue::glue("<https://ccbr.github.io/spacesavers2/{lubridate::year(lubridate::today())}/spacesavers2-report_{lubridate::today()}.html>")`
 
 ```{r load}
 library(bslib)

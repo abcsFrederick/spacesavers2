@@ -7,8 +7,8 @@ SINGULARITY_CACHEDIR=/data/CCBR_Pipeliner/SIFS
 today=$(date +'%Y-%m-%d')
 year=$(date +'%Y')
 mkdir -p docs/$year
-html_filename="docs/${year}/report_${today}.html"
-recipient_email="kelly.sovacool@nih.gov"
+html_filename="docs/${year}/spacesavers2-report_${today}.html"
+recipient_email="kelly.sovacool@nih.gov,vishal.koparde@nih.gov"
 
 echo "cd /mnt && \
     Rscript bin/render.R && \
