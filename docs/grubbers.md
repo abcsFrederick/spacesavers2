@@ -42,7 +42,7 @@ The output is displayed on STDOUT and is tab-delimited with these columns:
 | 2      | number of duplicates found            |
 | 3      | total size of all duplicates          |
 | 4      | size of each duplicate                |
-| 5      | "##"-separated list of duplicates     |
+| 5      | ";"-separated list of duplicates      |
 | 6      | duplicate files                       |
 
 Here is an example output line:

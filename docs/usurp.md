@@ -14,6 +14,16 @@ Deleting these high-value duplicates has the biggest impact on the users overall
 - `--hash` a hash from its first column of the grubber TSV.
 - `--force` (OPTIONAL) if the duplicates are cross-device then hard links cannot be made, with `--force` you can force using sym-links instead.
 
+The GRUBBER file has the following columns:
+| Column | Description                           |
+| ------ | ------------------------------------- |
+| 1      | combined hash                         |
+| 2      | number of duplicates found            |
+| 3      | total size of all duplicates          |
+| 4      | size of each duplicate                |
+| 5      | ";"-separated list of duplicates      |
+| 6      | duplicate files                       |
+
 ```bash
 usage: spacesavers2_usurp [-h] -g GRUBBER -x HASH [-f | --force | --no-force]
 
