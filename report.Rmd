@@ -103,9 +103,14 @@ plot_metric_time <- function(dat, y_metric) {
 
 panel_summary <- function(dat,
                           folder_path = "/data/CCBR",
-                          plot_fcn = plot_metric_time) {
+                          plot_fcn = plot_metric_time,
+                          min_bytes_GiB = 10) {
   summary_dat_folder <- dat %>%
-    filter(FolderPath == folder_path)
+    filter(FolderPath == folder_path) %>%
+    mutate(TotalBytes_GiB = from_bytes(TotalBytes, 'GiB')) %>% 
+    # only keep users with at least 10 GiB total usage
+    filter(TotalBytes_GiB >= min_bytes_GiB) %>% 
+    select(-TotalBytes_GiB)
   top_users <- summary_dat_folder %>%
     pivot_longer(all_of(summary_metrics),
       names_to = "metric"
@@ -343,7 +348,7 @@ allusers_summary <- all_files %>%
 
 card(
   card_header("Summary across all users"),
-  datatable(allusers_summary, fillContainer = TRUE)
+  datatable(allusers_summary, fillContainer = TRUE, fillContainer = TRUE)
 )
 ```
 
