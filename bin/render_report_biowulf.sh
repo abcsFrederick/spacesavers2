@@ -10,6 +10,7 @@ mkdir -p datashare/$year
 html_filename="datashare/${year}/spacesavers2-report_${today}.html"
 recipient_email="kelly.sovacool@nih.gov,vishal.koparde@nih.gov"
 
+# TODO switch this to ~CCBR_Pipeliner after we create the datashare there
 url=https://hpc.nih.gov/~sovacoolkl/spacesavers2/${year}/spacesavers2-report_${today}.html
 
 echo "cd /mnt && \
@@ -17,6 +18,7 @@ echo "cd /mnt && \
     cp datashare/report.html $html_filename && \
     python src/send_email.py \
         $html_filename \
+        $url \
         $recipient_email \
     " |\
     singularity exec -C -B $PWD:/mnt,/data/CCBR_Pipeliner/userdata/spacesavers2/:/mnt/data docker://nciccbr/spacesavers2:0.1.1 bash
