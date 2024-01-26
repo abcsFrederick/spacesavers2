@@ -1,2 +1,0 @@
-Filesystem	Size	Used	Avail	Use%	Mounted_on	date
-10.2.33.76:/	200T	197T	3.5T	99%	/vf	2023-10-17
