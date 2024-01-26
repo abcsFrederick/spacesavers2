@@ -13,13 +13,13 @@ params:
   input_dir: '/data/CCBR_Pipeliner/userdata/spacesavers2/'
   n_top_users: 10
 knit: (function(inputFile, encoding) {
-  rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs/") })
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "datashare/") })
 ---
 ```{r setup}
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 ```
 
-View this report on the web: `r glue::glue("<https://ccbr.github.io/spacesavers2/{lubridate::year(lubridate::today())}/spacesavers2-report_{lubridate::today()}.html>")`
+Download this report (must be logged into NIH VPN): `r glue::glue("<https://hpc.nih.gov/~sovacoolkl/spacesavers2/{lubridate::year(lubridate::today())}/spacesavers2-report_{lubridate::today()}.html>")`
 
 Notice a bug or want to make a suggestion for this report? [Open an issue](https://github.com/CCBR/spacesavers2/issues) on GitHub.
 
@@ -101,11 +101,11 @@ plot_metric_time <- function(dat, y_metric) {
     labs(y = y_metric)
 }
 
-min_bytes_GiB <- 10
+min_user_bytes_GiB <- 10
 panel_summary <- function(dat,
                           folder_path = "/data/CCBR",
                           plot_fcn = plot_metric_time,
-                          min_bytes_GiB = min_bytes_GiB) {
+                          min_bytes_GiB = min_user_bytes_GiB) {
   summary_dat_folder <- dat %>%
     filter(FolderPath == folder_path) %>%
     mutate(TotalBytes_GiB = from_bytes(TotalBytes, 'GiB')) %>% 
@@ -322,7 +322,7 @@ card(ggplotly(p, tooltip = "text"))
 ## Summary over time
 
 Usage by top users for each spacesavers metric.
-Only users with at least `r min_bytes_GiB` GiB of total disk usage are shown.
+Only users with at least `r min_user_bytes_GiB` GiB of total disk usage are shown.
 
 ```{r summary_over_time}
 summary_dat_all <- user_dat %>%
