@@ -101,10 +101,11 @@ plot_metric_time <- function(dat, y_metric) {
     labs(y = y_metric)
 }
 
+min_bytes_GiB <- 10
 panel_summary <- function(dat,
                           folder_path = "/data/CCBR",
                           plot_fcn = plot_metric_time,
-                          min_bytes_GiB = 10) {
+                          min_bytes_GiB = min_bytes_GiB) {
   summary_dat_folder <- dat %>%
     filter(FolderPath == folder_path) %>%
     mutate(TotalBytes_GiB = from_bytes(TotalBytes, 'GiB')) %>% 
@@ -278,7 +279,7 @@ layout_column_wrap(
     title = p(fa("hard-drive"), "  Disk space in /data/CCBR"),
     value = markdown(disk_usage %>%
                        slice_max(datetime) %>% 
-      mutate(Usage = glue("{Used} / {Size}")) %>%
+      mutate(Usage = glue("{round(used_tib,1)} / {size_tib}")) %>%
       select(Usage, `Use%`) %>%
       kable()),
     theme = "warning"
@@ -296,7 +297,8 @@ layout_column_wrap(
 ```{r disk_usage_over_time}
 p <- disk_usage %>% 
   mutate(datetime = lubridate::as_datetime(datetime)) %>%
-  pivot_longer(c(used_tib, size_tib, avail_tib), names_to = 'metric') %>% 
+  rename(used = used_tib, size = size_tib, avail = avail_tib) %>% 
+  pivot_longer(c(used, size, avail), names_to = 'metric') %>% 
   mutate(value = round(value, 2)) %>%
     ggplot(aes(
       x = datetime,
@@ -305,21 +307,22 @@ p <- disk_usage %>%
       group = metric
     )) +
     geom_line(alpha = 0.7) +
-    geom_point(aes(text = glue("{value} ({`Use%`})"))) +
+    geom_point(aes(text = glue("{value} TiB"))) +
   scale_x_datetime(labels = date_format("%b %Y")) +
   scale_color_brewer(palette = "Set1",
-                     labels = c(size_tib = 'Size', used_tib = "Used", avail_tib = "Avail"),
-                     breaks = c('size_tib', 'used_tib', 'avail_tib') # enforce order
+                     breaks = c('size', 'used', 'avail') # enforce order
                      ) +
-    labs(y = 'TiB', x = '')
-p
-ggplotly(p, tooltip = "text")
+    labs(y = 'TiB', x = '') + 
+  theme(legend.title = element_blank())
+
+card(ggplotly(p, tooltip = "text"))
 ```
 
 
 ## Summary over time
 
 Usage by top users for each spacesavers metric.
+Only users with at least `r min_bytes_GiB` GiB of total disk usage are shown.
 
 ```{r summary_over_time}
 summary_dat_all <- user_dat %>%
@@ -382,7 +385,7 @@ allusers_summary <- all_files %>%
 
 card(
   card_header("Summary across all users"),
-  datatable(allusers_summary, fillContainer = TRUE, fillContainer = TRUE)
+  datatable(allusers_summary, fillContainer = TRUE)
 )
 ```
 
