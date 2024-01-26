@@ -70,8 +70,8 @@ def main():
     global args
     args = parser.parse_args()
 
-    if args.version:
-        version_print()
+    # if args.version:
+    #     version_print()
 
     print_with_timestamp(
         start=start, scriptname=scriptname, string="version: {}".format(__version__)

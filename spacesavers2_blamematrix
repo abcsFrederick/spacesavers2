@@ -46,7 +46,7 @@ def main():
         required=True,
         type=str,
         default=sys.stdin,
-        help="spacesavers2_finddup prefix.allusers.files.gz file",
+        help="spacesavers2_mimeo prefix.allusers.files.gz file",
     )
     parser.add_argument(
         "-l",
