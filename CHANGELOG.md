@@ -4,7 +4,7 @@
 
 ### New features
 
-- Generated a report of spacesavers metrics on a cron schedule and sent via email. (@kelly-sovacool, #36, #48, $60)
+- Generated a report of spacesavers metrics on a cron schedule and sent via email. (#36, #48, #60, #63, @kelly-sovacool)
 - Print the version. (#40, #41, @kopardev)
 
 ## Bug fixes
