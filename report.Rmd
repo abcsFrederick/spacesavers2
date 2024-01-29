@@ -19,8 +19,6 @@ knit: (function(inputFile, encoding) {
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 ```
 
-Download this report (must be logged into NIH VPN): `r glue::glue("<https://hpc.nih.gov/~sovacoolkl/spacesavers2/{lubridate::year(lubridate::today())}/spacesavers2-report_{lubridate::today()}.html>")`
-
 Notice a bug or want to make a suggestion for this report? [Open an issue](https://github.com/CCBR/spacesavers2/issues) on GitHub.
 
 ```{r load}
@@ -251,17 +249,6 @@ summary_metrics <- summary_dat_recent %>%
 ```
 
 ## Total disk usage
-
-```{sh df, eval=dir.exists('/data/CCBR'), echo = FALSE}
-today=`date +"%Y-%m-%d %H:%M:%S"`
-df /data/CCBR |\
-  awk -v today="$today" 'NR==1{$(NF+1)="datetime"} NR>1{$(NF+1)=today}1' |\
-  sed -E 's/Mounted on/Mounted_on/' |\
-  sed -E 's/ +/\t/g' |\
-  # remove header and append to keep track over time
-  tail -n 1 |\
-  >> results/disk_usage.tsv
-```
 
 ```{r disk_usage_latest}
 disk_usage <- read_tsv(here("results", "disk_usage.tsv")) %>% 

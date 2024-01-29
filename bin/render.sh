@@ -4,6 +4,7 @@
 module load singularity
 SINGULARITY_CACHEDIR=/data/CCBR_Pipeliner/SIFS
 
+# render report
 echo "cd /mnt && \
     Rscript bin/render.R \
     " |\
