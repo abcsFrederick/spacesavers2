@@ -10,6 +10,9 @@ mkdir -p docs/$year
 html_filename="docs/${year}/spacesavers2-report_${today}.html"
 recipient_email="kelly.sovacool@nih.gov,vishal.koparde@nih.gov"
 
+# update disk usage
+bash bin/disk_usage.sh
+# render report and send via email
 echo "cd /mnt && \
     Rscript bin/render.R && \
     cp docs/report.html $html_filename && \
