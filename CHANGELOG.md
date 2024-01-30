@@ -10,6 +10,7 @@
 ## Bug fixes
 
 - Bugfixes. (#56, @kopardev)
+- fix `requirements.txt` to meet GH Dependabot (#66, @kopardev)
 - Improvements to grubbers and usurp docs. (#57, @kopardev)
 
 ## spacesavers2 0.10.1
