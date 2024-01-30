@@ -101,11 +101,17 @@ plot_metric_time <- function(dat, y_metric) {
     labs(y = y_metric)
 }
 
+min_user_bytes_GiB <- 10
 panel_summary <- function(dat,
                           folder_path = "/data/CCBR",
-                          plot_fcn = plot_metric_time) {
+                          plot_fcn = plot_metric_time,
+                          min_bytes_GiB = min_user_bytes_GiB) {
   summary_dat_folder <- dat %>%
-    filter(FolderPath == folder_path)
+    filter(FolderPath == folder_path) %>%
+    mutate(TotalBytes_GiB = from_bytes(TotalBytes, 'GiB')) %>% 
+    # only keep users with at least 10 GiB total usage
+    filter(TotalBytes_GiB >= min_bytes_GiB) %>% 
+    select(-TotalBytes_GiB)
   top_users <- summary_dat_folder %>%
     pivot_longer(all_of(summary_metrics),
       names_to = "metric"
@@ -247,17 +253,24 @@ summary_metrics <- summary_dat_recent %>%
 ## Total disk usage
 
 ```{sh df, eval=dir.exists('/data/CCBR'), echo = FALSE}
-today=`date +"%Y-%m-%d"`
-df -h /data/CCBR |\
-  awk -v today="$today" 'NR==1{$(NF+1)="date"} NR>1{$(NF+1)=today}1' |\
+today=`date +"%Y-%m-%d %H:%M:%S"`
+df /data/CCBR |\
+  awk -v today="$today" 'NR==1{$(NF+1)="datetime"} NR>1{$(NF+1)=today}1' |\
   sed -E 's/Mounted on/Mounted_on/' |\
-  sed -E 's/ +/\t/g' > results/disk_usage.txt
+  sed -E 's/ +/\t/g' |\
+  # remove header and append to keep track over time
+  tail -n 1 |\
+  >> results/disk_usage.tsv
 ```
 
-```{r disk_usage}
-disk_usage <- read_tsv(here("results", "disk_usage.txt"))
+```{r disk_usage_latest}
+disk_usage <- read_tsv(here("results", "disk_usage.tsv")) %>% 
+      mutate(used_tib = from_bytes(to_bytes(Used, "KiB"), "TiB"),
+             avail_tib = from_bytes(to_bytes(Avail, "KiB"),"TiB"),
+             size_tib = used_tib + avail_tib)
 df_date <- disk_usage %>%
-  pull("date") %>%
+  slice_max(datetime) %>% 
+  pull(datetime) %>%
   as_date()
 
 layout_column_wrap(
@@ -265,7 +278,8 @@ layout_column_wrap(
   value_box(
     title = p(fa("hard-drive"), "  Disk space in /data/CCBR"),
     value = markdown(disk_usage %>%
-      mutate(Usage = glue("{Used} / {Size}")) %>%
+                       slice_max(datetime) %>% 
+      mutate(Usage = glue("{round(used_tib,1)} / {size_tib}")) %>%
       select(Usage, `Use%`) %>%
       kable()),
     theme = "warning"
@@ -278,9 +292,37 @@ layout_column_wrap(
 )
 ```
 
+### Total usage over time
+
+```{r disk_usage_over_time}
+p <- disk_usage %>% 
+  mutate(datetime = lubridate::as_datetime(datetime)) %>%
+  rename(used = used_tib, size = size_tib, avail = avail_tib) %>% 
+  pivot_longer(c(used, size), names_to = 'metric') %>% 
+  mutate(value = round(value, 2)) %>%
+    ggplot(aes(
+      x = datetime,
+      y = value,
+      color = metric,
+      group = metric
+    )) +
+    geom_line(alpha = 0.7) +
+    geom_point(aes(text = glue("{value} TiB"))) +
+  scale_x_datetime(labels = date_format("%b %Y")) +
+  scale_color_brewer(palette = "Set2",
+                     breaks = c('size', 'used') # enforce order
+                     ) +
+    labs(y = 'TiB', x = '') + 
+  theme(legend.title = element_blank())
+
+card(ggplotly(p, tooltip = "text"))
+```
+
+
 ## Summary over time
 
 Usage by top users for each spacesavers metric.
+Only users with at least `r min_user_bytes_GiB` GiB of total disk usage are shown.
 
 ```{r summary_over_time}
 summary_dat_all <- user_dat %>%
