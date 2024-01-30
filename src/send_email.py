@@ -3,11 +3,11 @@
 """ Email the html report
 
 Usage:
-    python src/send_email.py <report_html> <recipient_emails>
+    python src/send_email.py <report_html> <report_url> <recipient_emails>
 
 Example:
-    python src/send_email.py docs/report.html kelly.sovacool@nih.gov
-    python src/send_email.py docs/2024/report_2024-01-17.html kelly.sovacool@nih.gov,vishal.koparde@nih.gov
+    python src/send_email.py docs/report.html https://hpc.nih.gov/~CCBR_Pipeliner/spacesavers2/report.html kelly.sovacool@nih.gov
+    python src/send_email.py docs/2024/spacesavers2-report_2024-01-17.html https://hpc.nih.gov/~CCBR_Pipeliner/spacesavers2/2024/spacesavers2-report_2024-01-17.html kelly.sovacool@nih.gov,vishal.koparde@nih.gov
 
 """
 
@@ -44,11 +44,15 @@ def send_email(
 
 
 if __name__ == "__main__":
+    # TODO switch to click for argument parsing if this starts to get any more complicated
     html_filename = sys.argv[1] if len(sys.argv) > 1 else ''
-    recipient_addr = sys.argv[2] if len(sys.argv) > 2 else 'kelly.sovacool@nih.gov'
+    url = sys.argv[2] if len(sys.argv) > 2 else ''
+    recipient_addr = sys.argv[3] if len(sys.argv) > 3 else 'kelly.sovacool@nih.gov'
+
+    download_text = f"Download the attached report or from {url}\n" if url else ''
     send_email(
         subject=f"🚀 spacesavers2 report",
         recipient=recipient_addr,
-        plain_text = f"Download the attached report or view it at https://ccbr.github.io/spacesavers2/{html_filename.strip('docs/')}\n\nThis is an automated email.",
+        plain_text = f"{download_text}\n\nThis is an automated email.",
         html_attach = html_filename
     )
