@@ -25,4 +25,5 @@ echo "cd /mnt && \
     " |\
     singularity exec -C -B $PWD:/mnt,/data/CCBR_Pipeliner/userdata/spacesavers2/:/mnt/data docker://nciccbr/spacesavers2:0.1.1 bash
 
+chmod -R a+r datashare/
 cp -r datashare/* /data/CCBR_Pipeliner/datashare/spacesavers2/
