@@ -2,7 +2,7 @@
 
 ### New features
 
-- adding `requirements.txt` for easy creation of environment in "spacesavers2" docker
+- adding `requirements.txt` for easy creation of environment in "spacesavers2" docker (#68, @kopardev)
 
 ## Bug fixes
 
