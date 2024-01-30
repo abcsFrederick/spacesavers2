@@ -6,8 +6,8 @@ Usage:
     python src/send_email.py <report_html> <report_url> <recipient_emails>
 
 Example:
-    python src/send_email.py docs/report.html https://hpc.nih.gov/~sovacoolkl/spacesavers2/report.html kelly.sovacool@nih.gov
-    python src/send_email.py docs/2024/spacesavers2-report_2024-01-17.html https://hpc.nih.gov/~sovacoolkl/spacesavers2/2024/spacesavers2-report_2024-01-17.html kelly.sovacool@nih.gov,vishal.koparde@nih.gov
+    python src/send_email.py docs/report.html https://hpc.nih.gov/~CCBR_Pipeliner/spacesavers2/report.html kelly.sovacool@nih.gov
+    python src/send_email.py docs/2024/spacesavers2-report_2024-01-17.html https://hpc.nih.gov/~CCBR_Pipeliner/spacesavers2/2024/spacesavers2-report_2024-01-17.html kelly.sovacool@nih.gov,vishal.koparde@nih.gov
 
 """
 

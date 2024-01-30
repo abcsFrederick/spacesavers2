@@ -10,8 +10,7 @@ mkdir -p datashare/$year
 html_filename="datashare/${year}/spacesavers2-report_${today}.html"
 recipient_email="kelly.sovacool@nih.gov,vishal.koparde@nih.gov"
 
-# TODO switch this to ~CCBR_Pipeliner after we create the datashare there
-url=https://hpc.nih.gov/~sovacoolkl/spacesavers2/${year}/spacesavers2-report_${today}.html
+url=https://hpc.nih.gov/~CCBR_Pipeliner/spacesavers2/${year}/spacesavers2-report_${today}.html
 
 # update disk usage
 bash bin/disk_usage.sh
@@ -26,5 +25,4 @@ echo "cd /mnt && \
     " |\
     singularity exec -C -B $PWD:/mnt,/data/CCBR_Pipeliner/userdata/spacesavers2/:/mnt/data docker://nciccbr/spacesavers2:0.1.1 bash
 
-# TODO switch this to CCBR_Pipeliner after we create the datashare there
-cp -r datashare/* /data/sovacoolkl/datashare/spacesavers2/
+cp -r datashare/* /data/CCBR_Pipeliner/datashare/spacesavers2/
