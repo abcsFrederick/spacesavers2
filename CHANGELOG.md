@@ -1,10 +1,8 @@
 ## spacesavers2 development version
 
-📢 Now tracking user-facing changes with a changelog. (#61, @kelly-sovacool)
-
 ### New features
 
-- 
+- adding `requirements.txt` for easy creation of environment in "spacesavers2" docker
 
 ## Bug fixes
 
