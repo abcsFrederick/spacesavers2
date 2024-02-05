@@ -28,7 +28,7 @@ def main():
     Version:
         {}
     Example:
-        > spacesavers2_blamematrix -f /output/from/spacesavers2_finddup/prefix.allusers.files.gz -d 3
+        > spacesavers2_blamematrix -f /output/from/spacesavers2_mimeo/prefix.allusers.mimeo.files.gz -d 3 -o prefix.blamematrix.tsv
         """.format(
             __version__
         )
@@ -46,7 +46,7 @@ def main():
         required=True,
         type=str,
         default=sys.stdin,
-        help="spacesavers2_mimeo prefix.allusers.files.gz file",
+        help="spacesavers2_mimeo prefix.allusers.mimeo.files.gz file",
     )
     parser.add_argument(
         "-l",
@@ -56,6 +56,30 @@ def main():
         type=int,
         default=3,
         help="folder level to use for creating matrix",
+    )
+    parser.add_argument(
+        "-r",
+        "--humanreable",
+        dest="humanreable",
+        required=False,
+        action=argparse.BooleanOptionalAction,
+        help="sizes are printed in human readable format ... (default: Bytes)",
+    )
+    parser.add_argument(
+        "-z",
+        "--includezeros",
+        dest="includezeros",
+        required=False,
+        action=argparse.BooleanOptionalAction,
+        help="include folders where totalbytes is zero.",
+    )
+    parser.add_argument(
+        "-o",
+        "--outfile",
+        dest="outfile",
+        required=False,
+        type=str,
+        help="output tab-delimited file (default STDOUT)",
     )
     parser.add_argument("-v", "--version", action="version", version=__version__)
 
@@ -85,20 +109,34 @@ def main():
                     blamematrix[user][folder] += dfu.bm[user][folder]
                     blamematrix["allusers"][folder] += dfu.bm[user][folder]
 
+    if args.outfile:
+        of = open(args.outfile, "w")
+    else:
+        of = sys.stdout
+
     users = list(blamematrix.keys())
     folders = list(blamematrix["allusers"].keys())
     users2 = ["folder"]
     users2.extend(users)
-    print("\t".join(users2))
+    outstr = "\t".join(users2)
+    of.write("%s\n"%(outstr))
     for folder in folders:
-        print(folder, end="")
+        outlist = []
+        outlist.append(str(folder))
         for user in users:
             try:
-                hrsize = get_human_readable_size(blamematrix[user][folder])
+                hrsize = blamematrix[user][folder]
+                if args.humanreable:
+                    hrsize = get_human_readable_size(hrsize)
             except KeyError:
                 hrsize = "0"
-            print("\t{}".format(hrsize), end="")
-        print("")
+            outlist.append(str(hrsize))
+        if blamematrix["allusers"][folder] == 0 :
+            if args.includezeros: 
+                of.write("%s\n"%("\t".join(outlist)))
+        else:
+            of.write("%s\n"%("\t".join(outlist)))
+    if args.outfile: of.close()
     print_with_timestamp(start=start, scriptname=scriptname, string="Done!")
 
 
