@@ -15,15 +15,19 @@ class dfUnit:
         self.flist  = []    # list of _ls files with the same hash
         self.fsize  = -1    # size of each file
         self.ndup   = -1    # files in flist with same size, but different inode (they already have the same hash)
+        self.ndup_files = -1 # number of duplicate files ... used for counting duplicate files
+        self.ndup_inode = -1 # number of duplicate inodes ... used for counting duplicate bytes
         self.size_set   = set()    # set of unique sizes ... if len(size_set) then split is required
         self.uid_list   = []        # list of uids of files added
         self.inode_list = []        # list of inodes of files added
-        self.oldest_inode   = -1    # oldest_ ... is for the file which is NOT the duplicate
+        self.oldest_inode   = -1    # oldest_ ... is for the file which is NOT the duplicate or is the original
         self.oldest_index   = -1
         self.oldest_age     = -1
         self.oldest_uid     = -1
 
-    
+    def nfiles_with_hash(self): # return number of files in this hash (total ... all users included)
+        return len(self.flist)
+
     def add_fd(self,fd):
         # add the file to flist
         self.flist.append(fd)
@@ -44,7 +48,14 @@ class dfUnit:
         for i,f in enumerate(self.flist):
             if f.uid == uid : self.keep.append(i)
                 
-    def compute(self,hashhashsplits,split_required): # 1. move oldest to the first position 2. find ndup 3. find size 4. filter by uid 5. get depth folder
+    def compute(self,hashhashsplits): 
+        # find if files have the same hashes, but different sizes then...
+        #   1. split them into different hashes by size and 
+        #   2. append them to hashhashsplits
+        # else ... aka .. .no spliting is required
+        #   1. count number of duplicate inodes and
+        #   2. size of each file
+        split_required = False
         # check if spliting is required
         if len(self.size_set) > 1: # more than 1 size in this hash
             split_required = True
@@ -57,13 +68,16 @@ class dfUnit:
                     if fd.size == size:
                         hashhashsplits[newhash].add_fd(fd)
         else: # there only 1 size ... no splits required
-            self.ndup   = len(self.inode_list) - 1  #ndup is zero if same size and only 1 inode
+            self.ndup   = len(self.inode_list) - 1  #ndup is zero if same len(size_set)==1 and len(inode_list)==1
+            self.ndup_inode = len(set(self.inode_list)) - 1
+            self.ndup_files = len(self.inode_list) - 1
             self.fsize  = self.flist[0].size
+        return split_required
     
     def get_user_file_index(self,uid):
         uid_file_index = []
         if not uid in self.uid_list:
-            if uid == 0: uid_file_index = list(range(0,len(self.flist)))
+            if uid == 0: uid_file_index = list(range(0,len(self.flist))) # uid == 0 is all users
             return uid_file_index
         else:
             for i,j in enumerate(self.flist):
@@ -82,10 +96,11 @@ class dfUnit:
 class fgz: # used by grubber
     def __init__(self):
         self.hash = ""
-        self.ndup = -1
+        self.ndup = -1 # number of duplicate files and not duplicate inodes
         self.filesize = -1
         self.totalsize = -1
-        self.fds = []
+        self.fds = [] # list of duplicate files
+        self.of = "" # original file 
     
     def __lt__(self,other):
         return self.totalsize > other.totalsize
@@ -96,6 +111,7 @@ class fgz: # used by grubber
         outstring.append(str(self.ndup))
         outstring.append(get_human_readable_size(self.totalsize))
         outstring.append(get_human_readable_size(self.filesize))
+        outstring.append(get_filename_from_fgzlistitem(self.of))
         outstring.append(";".join(map(lambda x:get_filename_from_fgzlistitem(x),self.fds)))
         return "\t".join(outstring)
         # return "{0} {1} {2} {3} {4}".format(self.hash,self.ndup,get_human_readable_size(self.totalsize), get_human_readable_size(self.filesize), ";".join(map(lambda x:get_filename_from_fgzlistitem(x),self.fds)))
@@ -107,20 +123,22 @@ class fgz: # used by grubber
         try:
             inputline = inputline.strip().split(" ")
             if len(inputline) < 5:
-                raise Exception("Less than 5 items in the line.")
+                raise Exception("Less than 5 items in mimeo.files.gz line.")
             self.hash = inputline.pop(0)
-            dummy = inputline.pop(0)
+            dummy = inputline.pop(0) # the colon
             total_ndup = int(inputline.pop(0))
-            if total_ndup == 0: # may be finddup was run to output all files .. not just dups
+            if total_ndup == 0: # may be mimeo was run to output all files .. not just dups .. aka without the -z option
                 return False
             self.filesize = int(inputline.pop(0))
-            full_fds = " ".join(inputline)
+            full_fds = " ".join(inputline) # bcos file names can contain spaces
             fds = full_fds.split("##")
-            self.ndup = len(fds) # these are user number of duplicates/files
-            if self.ndup == (total_ndup + 1): # one file is the original ... other are all duplicates
-                dummy = fds.pop(0)
-                self.ndup -= 1
-            self.fds = fds
+            self.ndup = total_ndup  # these are user number of duplicates/files
+            self.of = fds.pop(0)    # one file is the original
+            self.fds = fds          # others are dupicates
+            inodes_set = set()
+            for f in fds:
+                l = f.split(";")
+                inodes_set.add(l[-7])
             self.totalsize = self.ndup * self.filesize
             return True
         except:
