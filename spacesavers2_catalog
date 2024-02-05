@@ -63,7 +63,7 @@ def main():
         required=False,
         type=int,
         default=4,
-        help="number of threads to be used",
+        help="number of threads to be used (default 4)",
     )
     parser.add_argument(
         "-b",
@@ -72,7 +72,7 @@ def main():
         required=False,
         type=int,
         default=128 * 1024,
-        help="buffersize for xhash creation",
+        help="buffersize for xhash creation (default=128 * 1028 bytes)",
     )
     parser.add_argument(
         "-i",
@@ -81,7 +81,7 @@ def main():
         required=False,
         type=int,
         default=1024 * 1024 * 1024,
-        help="this sized header of the file is ignored before extracting buffer of buffersize for xhash creation (only for special extensions files)",
+        help="this sized header of the file is ignored before extracting buffer of buffersize for xhash creation (only for special extensions files) default = 1024 * 1024 * 1024 bytes",
     )
     parser.add_argument(
         "-s",
@@ -90,7 +90,7 @@ def main():
         required=False,
         type=str,
         default="bam,bai,bigwig,bw,csi",
-        help="comma separated list of special extensions",
+        help="comma separated list of special extensions (default=bam,bai,bigwig,bw,csi)",
     )
     parser.add_argument(
         "-o",
