@@ -115,7 +115,7 @@ class FileDetails:
             # exit()            
             return False
     
-    def str_with_name(self,uid2uname,gid2gname):# method for printing output in finddup ... replace "xhash_top;xhash_bottom" with "username;groupname" at the end of the string
+    def str_with_name(self,uid2uname,gid2gname):# method for printing output in mimeo ... replace "xhash_top;xhash_bottom" with "username;groupname" at the end of the string
         # return_str = "\"%s\";"%(self.apath)
         # path may have newline char which should not be interpretted as new line char
         return_str = "\"%s\";"%(str(self.apath).encode('unicode_escape').decode('utf-8'))
@@ -139,7 +139,7 @@ class FileDetails:
         return_str = "\"%s\";"%(str(self.apath).encode('unicode_escape').decode('utf-8'))
         return_str += "%s;"%(self.issyml)
         return_str += "%d;"%(self.size)
-        return_str += "%d;"%(self.dev)
+        return_str += "%d;"%(self.dev) # device id
         return_str += "%d;"%(self.inode)
         return_str += "%d;"%(self.nlink)
         return_str += "%d;"%(self.atime)
@@ -152,10 +152,11 @@ class FileDetails:
         return return_str
 
     def get_paths_at_all_depths(self): # for files
-        return self.apath.parents[:-1]
+        return self.apath.parents[:-1] # remove the last one ... which will be '/'
 
     def get_paths(self,mindepth,maxdepth):
         parents = list(self.apath.parents[0:-1])
         parents = list(filter(lambda x:get_folder_depth(x) <= maxdepth,parents))
         parents = list(filter(lambda x:get_folder_depth(x) >= mindepth,parents))
         return parents
+
