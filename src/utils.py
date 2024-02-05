@@ -73,6 +73,10 @@ def get_folder_depth(path):
 
 
 def get_file_depth(path):
+#     example
+#     >>> len(list(Path("/f1/f2/f3/f4/a.xyz").absolute().parents))-1
+#       4
+#     a.k.a. file a.xyz is 4 folders deep
     try:
         return len(list(path.parents)) - 1
     except:
