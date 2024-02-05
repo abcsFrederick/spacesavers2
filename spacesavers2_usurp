@@ -70,9 +70,6 @@ def main():
     global args
     args = parser.parse_args()
 
-    # if args.version:
-    #     version_print()
-
     print_with_timestamp(
         start=start, scriptname=scriptname, string="version: {}".format(__version__)
     )
@@ -83,18 +80,30 @@ def main():
             l = l.strip().split("\t")
             lhash = l[0]
             if args.hash in lhash:
-                dupfiles = l[4].split(";")
-                original_copy = Path(dupfiles.pop(0).strip('"'))
+                original_copy = Path(l[4].strip('"'))
+                dupfiles = l[5].split(";")
                 print_with_timestamp(
                     start=start,
                     scriptname=scriptname,
                     string="Original copy: {}".format(original_copy),
                 )
+                if not os.access(original_copy, os.R_OK):
+                    print_with_timestamp(
+                        start=start,
+                        scriptname=scriptname,
+                        string="Original copy is not readable. Hardlinks cannot be created!",
+                    )
+                    exit(1)
+                inode_set = set()                   
                 for dup in dupfiles:
                     dup = Path(dup.strip('"'))
                     duptmp = Path(str(dup) + "." + str(uuid.uuid4()))
                     st = os.stat(dup)
-                    total_saved += st.st_size
+                    fsize = st.st_size
+                    finode = st.st_ino
+                    if not finode in inode_set:
+                        inode_set.add(finode)
+                        total_saved += fsize
                     print_with_timestamp(
                         start=start,
                         scriptname=scriptname,
@@ -110,20 +119,21 @@ def main():
                         os.remove(dup)
                         os.rename(duptmp, dup)
                     except OSError:
-                        print_with_timestamp(
-                            start=start,
-                            scriptname=scriptname,
-                            string="OSError occurred while creating hard-link. Probably trying to create a cross-device hard-link",
-                        )
                         if args.force:
                             print_with_timestamp(
                                 start=start,
                                 scriptname=scriptname,
-                                string="Creating sym-link instead!",
+                                string="Creating symlink file: {}".format(dup),
                             )
                             os.remove(dup)
                             os.symlink(original_copy, dup)
-                break
+                        else:
+                            print_with_timestamp(
+                                start=start,
+                                scriptname=scriptname,
+                                string="OSError occurred while creating hard-link. Probably trying to create a cross-device hard-link. Try using --force to create symlink instead.",
+                            )
+                # break
     total_saved_human_readable = get_human_readable_size(total_saved)
     print_with_timestamp(
         start=start,
