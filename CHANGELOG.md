@@ -3,6 +3,15 @@
 ### New features
 
 - adding `requirements.txt` for easy creation of environment in "spacesavers2" docker (#68, @kopardev)
+- `grubbers` `--limit` can be < 1 GiB (float) (#70, @kopardev)
+- `grubbers` has new `--outfile` argument.
+- `grubbers` output file format changed. New original file column added.
+- `blamematrix` has 3 new arguments `--humanreable`, `--includezeros` and `--outfile`.
+- `mimeo` `--duplicateonly` logic fix (#71, @kopardev)
+- `mimeo` files.gz always includes the original file as the first one in the filelist.
+- `mimeo` now has kronatools compatible output. ktImportText is also run if in PATH to generate HTML report for duplicates only. (#46, @kopardev)
+- `e2e` overhauled, improved and well commented.
+- documentation updated.
 
 ## Bug fixes
 
