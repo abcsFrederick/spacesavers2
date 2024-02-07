@@ -3,7 +3,7 @@ from .utils import *
 
 def get_filename_from_fgzlistitem(string):
     string = string.strip().split(";")[:-1]
-    for i in range(9):
+    for i in range(11):
         dummy = string.pop(-1)
     filename = ";".join(string)
     return filename
@@ -12,12 +12,13 @@ def get_filename_from_fgzlistitem(string):
 class dfUnit:
     def __init__(self,hash):
         self.hash   = hash  # typically hash_top + "#" + hash_bottom
-        self.flist  = []    # list of _ls files with the same hash
-        self.fsize  = -1    # size of each file
+        self.flist  = []    # list of catalog files with the same hash
+        self.fsize  = -1    # calculated size of each file
         self.ndup   = -1    # files in flist with same size, but different inode (they already have the same hash)
         self.ndup_files = -1 # number of duplicate files ... used for counting duplicate files
         self.ndup_inode = -1 # number of duplicate inodes ... used for counting duplicate bytes
         self.size_set   = set()    # set of unique sizes ... if len(size_set) then split is required
+        self.calculated_size_list = []
         self.uid_list   = []        # list of uids of files added
         self.inode_list = []        # list of inodes of files added
         self.oldest_inode   = -1    # oldest_ ... is for the file which is NOT the duplicate or is the original
@@ -33,6 +34,7 @@ class dfUnit:
         self.flist.append(fd)
         # add size if not already present
         self.size_set.add(fd.size)
+        self.calculated_size_list.append(fd.calculated_size)
         # add uid
         self.uid_list.append(fd.uid)
         # add inode
@@ -71,7 +73,7 @@ class dfUnit:
             self.ndup   = len(self.inode_list) - 1  #ndup is zero if same len(size_set)==1 and len(inode_list)==1
             self.ndup_inode = len(set(self.inode_list)) - 1
             self.ndup_files = len(self.inode_list) - 1
-            self.fsize  = self.flist[0].size
+            self.fsize  = self.flist[0].calculated_size
         return split_required
     
     def get_user_file_index(self,uid):
@@ -87,10 +89,10 @@ class dfUnit:
 
     
     def __str__(self):
-        return "{0} : {1} {2} {3}".format(self.hash, self.ndup, self.fsize,"##".join(map(lambda x:str(x),self.flist)))
+        return "{0} : {1} {2} {3}".format(self.hash, self.ndup_inode, self.fsize,"##".join(map(lambda x:str(x),self.flist)))
         
     def str_with_name(self,uid2uname, gid2gname,findex):
-        return "{0} : {1} {2} {3}".format(self.hash, self.ndup, self.fsize,"##".join(map(lambda x:x.str_with_name(uid2uname,gid2gname),[self.flist[i] for i in findex])))
+        return "{0} : {1} {2} {3}".format(self.hash, self.ndup_inode, self.fsize,"##".join(map(lambda x:x.str_with_name(uid2uname,gid2gname),[self.flist[i] for i in findex])))
 
 
 class fgz: # used by grubber
@@ -109,10 +111,10 @@ class fgz: # used by grubber
         outstring=[]
         outstring.append(str(self.hash))
         outstring.append(str(self.ndup))
-        outstring.append(get_human_readable_size(self.totalsize))
-        outstring.append(get_human_readable_size(self.filesize))
+        outstring.append(str(self.totalsize))
+        outstring.append(str(self.filesize))
         outstring.append(get_filename_from_fgzlistitem(self.of))
-        outstring.append(";".join(map(lambda x:get_filename_from_fgzlistitem(x),self.fds)))
+        outstring.append("##".join(map(lambda x:get_filename_from_fgzlistitem(x),self.fds)))
         return "\t".join(outstring)
         # return "{0} {1} {2} {3} {4}".format(self.hash,self.ndup,get_human_readable_size(self.totalsize), get_human_readable_size(self.filesize), ";".join(map(lambda x:get_filename_from_fgzlistitem(x),self.fds)))
         # return "{0} {1} {2} {3} {4}".format(self.hash,self.ndup,self.totalsize, self.filesize, ";".join(map(lambda x:get_filename_from_fgzlistitem(x),self.fds)))
@@ -135,90 +137,7 @@ class fgz: # used by grubber
             self.ndup = total_ndup  # these are user number of duplicates/files
             self.of = fds.pop(0)    # one file is the original
             self.fds = fds          # others are dupicates
-            inodes_set = set()
-            for f in fds:
-                l = f.split(";")
-                inodes_set.add(l[-7])
-            self.totalsize = self.ndup * self.filesize
-            return True
-        except:
-            sys.stderr.write("spacesavers2:{0}:files.gz Do not understand line:{1} with {2} elements.\n".format(self.__class__.__name__,original_line,len(inputline)))
-            # exit()            
-            return False
-
-
-class FileDetails2:
-    def __init__(self):
-        self.apath = ""
-        self.size = -1
-        self.dev = -1
-        self.inode = -1
-        self.nlink = -1
-        self.mtime = -1
-        self.uid = -1
-        self.gid = -1
-        self.uname = ""
-        self.gname = ""
-    
-    def set(self,fgzline):
-        original_fgzline=fgzline
-        # print(ls_line)
-        try:
-            fgzline         = fgzline.strip().replace("\"","").split(";")[:-1]
-            if len(fgzline) < 10:
-                raise Exception("Less than 10 items in the line.")
-            self.gname      = fgzline.pop(-1)
-            self.uname      = fgzline.pop(-1)
-            self.gid        = int(fgzline.pop(-1))
-            self.uid        = int(fgzline.pop(-1))
-            self.mtime      = int(fgzline.pop(-1)) 
-            self.nlink      = int(fgzline.pop(-1))
-            self.inode      = int(fgzline.pop(-1))
-            self.dev        = int(fgzline.pop(-1))
-            self.size       = int(fgzline.pop(-1))
-            apath           = ";".join(fgzline)
-            apath           = apath.strip("\"")
-            self.apath      = Path(apath)         # sometimes filename have ";" in them ... hence this!
-            return True
-        except:
-            sys.stderr.write("spacesavers2:{0}:catalog Do not understand line:\"{1}\" with {2} elements.\n".format(self.__class__.__name__,original_fgzline,len(fgzline)))
-            # exit()            
-            return False        
-
-class fgzblamer: # used by blamematrix
-    def __init__(self):
-        self.hash = ""
-        self.ndup = -1
-        self.users = set()
-        self.folders = set()
-        self.bm = dict()
-        self.fds = []
-    
-    def set(self,inputline,depth):
-        original_line = inputline
-        try:
-            inputline = inputline.strip().split(" ")
-            if len(inputline) < 5:
-                raise Exception("Less than 5 items in the line.")
-            self.hash = inputline.pop(0)
-            dummy = inputline.pop(0)
-            self.ndup = int(inputline.pop(0))
-            if self.ndup == 0 or self.ndup == 1: return False                       
-            self.filesize = int(inputline.pop(0))
-            full_fds = " ".join(inputline)
-            fds = full_fds.split("##")
-            for f in fds:
-                fd = FileDetails2()
-                fd.set(f)
-                self.users.add(fd.uname)
-                fad=get_folder_at_depth(fd.apath,depth)
-                self.folders.add(fad)
-                if not fd.uname in self.bm:
-                    self.bm[fd.uname] = dict()
-                if not fad in self.bm[fd.uname]:
-                    self.bm[fd.uname][fad] = 0
-                self.bm[fd.uname][fad] += self.filesize
-            self.fds = []
+            self.totalsize = total_ndup * self.filesize
             return True
         except:
             sys.stderr.write("spacesavers2:{0}:files.gz Do not understand line:{1} with {2} elements.\n".format(self.__class__.__name__,original_line,len(inputline)))

@@ -92,7 +92,7 @@ def main():
         of = sys.stdout
 
     for fgitem in dups:
-        if fgitem.totalsize < top_limit:
+        if fgitem.totalsize <= top_limit:
             break
         saved += fgitem.totalsize
         of.write("%s\n"%(fgitem))
@@ -100,11 +100,11 @@ def main():
     if args.outfile:
         of.close()
 
-    saved = get_human_readable_size(saved)
+    hrsaved = get_human_readable_size(saved)
     print_with_timestamp(
         start=start,
         scriptname=scriptname,
-        string="Deleting top grubbers will save {}!".format(saved),
+        string="Deleting top grubbers will save {} [ {} Bytes ] !".format(hrsaved,saved),
     )
     print_with_timestamp(start=start, scriptname=scriptname, string="Done!")
 

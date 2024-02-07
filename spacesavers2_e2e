@@ -13,8 +13,8 @@ source ${SCRIPT_DIR}/resources/argparse.bash || exit 1
 argparse "$@" <<EOF || exit 1
 parser.add_argument('-f','--folder',required=True, help='Folder to run spacesavers_catalog on.')
 parser.add_argument('-p','--threads',required=False, help='number of threads to use', default=4)
+parser.add_argument('-d','--maxdepth',required=False, help='maxdepth for mimeo', default=4)
 parser.add_argument('-l','--limit',required=False, help='limit for running spacesavers_grubbers', default=5)
-parser.add_argument('-v','--level',required=False, help='level for running spacesavers_blamematrix', default=3)
 parser.add_argument('-q','--quota',required=False, help='total size of the volume (default = 200 for /data/CCBR)', default=200)
 parser.add_argument('-o','--outfolder',required=True, help='Folder where all spacesavers_e2e output files will be saved')
 EOF
@@ -54,20 +54,24 @@ spacesavers2_catalog \
     > ${outfile_catalog_log} 2> ${outfile_catalog_err}
 fi
 
+sleep 60
+
 # spacesavers2_mimeo
 if [ "$?" == "0" ];then
 echo "Running spacesavers2_mimeo" 
-command -V ktImportText 2>/dev/null || module load kronatools || (>&2 echo "module kronatools could not be loaded"; exit 1)
+command -V ktImportText 2>/dev/null || module load kronatools || (>&2 echo "module kronatools could not be loaded")
 spacesavers2_mimeo \
     --catalog ${outfile_catalog} \
     --outdir ${OUTFOLDER} \
     --quota $QUOTA \
     --duplicatesonly \
-    --maxdepth 3 \
+    --maxdepth $MAXDEPTH \
     --p $prefix \
     --kronaplot \
     > ${outfile_mimeo_log} 2> ${outfile_mimeo_err}
 fi
+
+sleep 60
 
 # spacesavers2_grubbers
 if [ "$?" == "0" ];then
@@ -84,13 +88,4 @@ for filegz in `ls ${OUTFOLDER}/${prefix}*files.gz`;do
 done
 fi
 
-# spacesavers2_blamematrix
-if [ "$?" == "0" ];then
-echo "Running spacesavers2_blamematrix" && \
-spacesavers2_blamematrix \
-    --filesgz ${OUTFOLDER}/${prefix}.allusers.mimeo.files.gz \
-    --level $LEVEL \
-    --outfile ${outfile_blamematrix} \
-    > ${outfile_blamematrix_log} 2> ${outfile_blamematrix_err}
-fi
 echo "Done!"

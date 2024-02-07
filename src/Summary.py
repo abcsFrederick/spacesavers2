@@ -33,6 +33,7 @@ class Summary:
         self.ndup_files = 0
         self.non_dup_Bytes = []
         self.dup_Bytes = []
+        self.folder_Bytes = 0
         self.non_dup_ages = []
         self.dup_ages = []
         self.non_dup_age_scores = []
@@ -71,7 +72,7 @@ class Summary:
 
     def __str__(self):
         dup_Bytes = sum(self.dup_Bytes)
-        tot_Bytes = sum(self.non_dup_Bytes) + dup_Bytes
+        tot_Bytes = sum(self.non_dup_Bytes) + dup_Bytes + self.folder_Bytes
         try:
             dup_mean_age = sum(self.dup_ages)/len(self.dup_ages)
         except ZeroDivisionError:

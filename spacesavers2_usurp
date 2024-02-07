@@ -11,10 +11,6 @@ from src.VersionCheck import __version__
 
 version_check()
 
-# from src.FileDetails import FileDetails
-from src.dfUnit import fgzblamer
-
-# from src.Summary import Summary
 from src.utils import *
 from datetime import date
 
@@ -81,7 +77,7 @@ def main():
             lhash = l[0]
             if args.hash in lhash:
                 original_copy = Path(l[4].strip('"'))
-                dupfiles = l[5].split(";")
+                dupfiles = l[5].split("##")
                 print_with_timestamp(
                     start=start,
                     scriptname=scriptname,

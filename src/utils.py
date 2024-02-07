@@ -72,18 +72,6 @@ def get_folder_depth(path):
     return len(list(path.parents))
 
 
-def get_file_depth(path):
-#     example
-#     >>> len(list(Path("/f1/f2/f3/f4/a.xyz").absolute().parents))-1
-#       4
-#     a.k.a. file a.xyz is 4 folders deep
-    try:
-        return len(list(path.parents)) - 1
-    except:
-        print('get_file_depth error for file:"{}", type:{}'.format(path, type(path)))
-        exit()
-
-
 def get_timestamp(start):
     e = time.time()
     return "%08.2fs" % (e - start)

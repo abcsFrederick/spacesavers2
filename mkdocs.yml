@@ -102,6 +102,5 @@ nav:
       - catalog: catalog.md
       - mimeo: mimeo.md
       - grubbers: grubbers.md
-      - blamematrix: blamematrix.md
       - usurp: usurp.md
       - e2e: e2e.md
