@@ -277,7 +277,7 @@ def main():
         string="Total Number of users: %d" % len(users),
     )
     blamematrixtsv = os.path.join(
-        os.path.abspath(args.outdir), "blamematrix.tsv"
+        os.path.abspath(args.outdir), args.prefix + "." + "blamematrix.tsv"
     )
     blamematrix = dict()
     all_blamematrix_paths = set()
