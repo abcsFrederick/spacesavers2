@@ -18,7 +18,7 @@ End-to-end run of spacesavers2
 
 options:
   -h, --help            show this help message and exit
-  -i INFOLDER, --infolder INFOLDER
+  -f FOLDER, --folder FOLDER
                         Folder to run spacesavers_ls on.
   -p THREADS, --threads THREADS
                         number of threads to use

@@ -8,23 +8,23 @@
 
 ### New features
 
-- adding `requirements.txt` for easy creation of environment in "spacesavers2" docker (#68, @kopardev)
+- Add `requirements.txt` for easy creation of environment in "spacesavers2" docker (#68, @kopardev)
 - `grubbers` has new `--outfile` argument.
 - `blamematrix` has now been moved into `mimeo`.
 - `mimeo` files.gz always includes the original file as the first one in the filelist.
 - `mimeo` now has kronatools compatible output. ktImportText is also run if in PATH to generate HTML report for duplicates only. (#46, @kopardev)
-- documentation updated.
+- Update documentation.
 
 ### Bug fixes
 
-- `grubbers` `--limit` can be < 1 GiB (float) (#70, @kopardev)
-- `grubbers` output file format changed. New original file column added. Original file is required by `usurp`
-- `mimeo` `--duplicateonly` logic fix (#71, @kopardev)
-- `blamematrix` fixed to account for changes due to #71
-- `usurp` fixed to account for changes due to #71. Now using the new "original file" column while creating hard-links.
 - `e2e` overhauled, improved and well commented.
-- total size now closely resemble `df` results (fix #75 @kopardev)
-- files with future timestamps are handles correctly (fix #76, @kopardev)
+- `grubbers` `--limit` can be < 1 GiB (float) (#70, @kopardev)
+- `grubbers` output file format changed. New original file column added. Original file is required by `usurp`.
+- `mimeo` `--duplicateonly` now correctly handles duplicates owned by different UIDs. (#71, @kopardev)
+    - Update `blamematrix` and to account for corrected duplicate handling in `mimeo`.
+- `usurp` now uses the new "original file" column from `grubbers` while creating hard-links.
+- Total size now closely resembles `df` results (fix #75 @kopardev)
+- Files with future timestamps are handled correctly (fix #76, @kopardev)
   
 ## spacesavers2 0.10.2
 
