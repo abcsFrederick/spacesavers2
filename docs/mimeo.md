@@ -46,7 +46,9 @@ Example:
 
 ### Outputs
 
-After completion of run, `spacesavers2_mimeo` creates `*.mimeo.files.gz` (list of files per user + one "allusers" file) and `.summary.txt` (overall stats at various depths) files in the provided output folder. if `-k` is provided (and ktImportText from [kronatools](https://github.com/marbl/Krona/wiki/KronaTools) is in PATH) then krona specific TSV and HTML pages are also generated. Here are the details:
+After completion of run, `spacesavers2_mimeo` creates `*.mimeo.files.gz` (list of files per user + one "allusers" file) and `.summary.txt` (overall stats at various depths) files in the provided output folder. if `-k` is provided (and ktImportText from [kronatools](https://github.com/marbl/Krona/wiki/KronaTools) is in PATH) then krona specific TSV and HTML pages are also generated. It also generates a `blamematrix.tsv` file with folders on rows and users on columns with duplicate bytes per-folder-per-user. This file can be used to create a "heatmap" to pinpoint folder with highest duplicates overall as well as on a per-user basis.
+
+Here are the details:
 
 #### Duplicates
 
@@ -101,3 +103,9 @@ For columns 10 through 13, the same logic is used as [spacesavers](https://ccbr.
 
 - KronaTSV is tab-delimited with first column showing the number of duplicate bytes and every subsequent column giving the folder depths.
 - ktImportText is then used to convert the KronaTSV to KronaHTML which can be shared easily and only needs a HTML5 supporting browser for viewing.
+
+#### Blamematrix
+
+- rows are folders as 1 level deeper than the "mindepth"
+- columns are all individual usernames, plus an "allusers" column
+- only duplicate-bytes are reported

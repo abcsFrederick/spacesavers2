@@ -55,7 +55,7 @@ def process_hh(
         user_owns_original = False
         if foldest.uid == uid or 0 == uid : user_owns_original = True
         uid_file_index = list(filter(lambda x:x!=oldest_index,uid_file_index)) # remove oldest if present in list
-        inodes_already_summerized = list()
+        inodes_already_summerized = [foldest.inode]
         if hashhash[h].ndup_files > 0: # we have duplicates
             for i in uid_file_index:
                 f = hashhash[h].flist[i]
