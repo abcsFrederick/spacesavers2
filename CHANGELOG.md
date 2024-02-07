@@ -22,7 +22,7 @@
 - `grubbers` output file format changed. New original file column added. Original file is required by `usurp`.
 - `mimeo` `--duplicateonly` now correctly handles duplicates owned by different UIDs. (#71, @kopardev)
     - Update `blamematrix` and to account for corrected duplicate handling in `mimeo`.
-    - `usurp` now uses the new "original file" column while creating hard-links.
+- `usurp` now uses the new "original file" column from `grubbers` while creating hard-links.
 - Total size now closely resembles `df` results (fix #75 @kopardev)
 - Files with future timestamps are handled correctly (fix #76, @kopardev)
   
