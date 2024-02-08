@@ -9,8 +9,8 @@ try:
 except ImportError:
     exit(f"{sys.argv[0]} requires xxhash module")
 
-THRESHOLDSIZE = 1024 * 1024 * 1024
-BUFFERSIZE  = 128 * 1024
+THRESHOLDSIZE = 1024 * 1024 * 1024  # 1 MiB
+BUFFERSIZE  = 128 * 1024            # 128 KiB
 TB = THRESHOLDSIZE+BUFFERSIZE
 SEED = 20230502
 MINDEPTH = 3
@@ -21,14 +21,33 @@ for se in special_extensions:
     SED[se]=1
 
 def convert_time_to_age(t):
-    currenttime=int(time.time())
-    return int((currenttime - t)/86400)+1 
+    currenttime = int(time.time())
+    age = int((currenttime - t)/86400)+1
+    if age < 0: age = 0
+    return age
+
+def get_type(p):
+    x = "u" # unknown
+    if not p.exists():
+        x = "a" # absent
+        return x
+    if p.is_symlink():
+        x = "l" # link or symlink
+        return x
+    if p.is_dir():
+        x = "d" # directory
+        return x
+    if p.is_file():
+        x = "f" # file
+        return x
+    return x
 
 class FileDetails:
     def __init__(self):
         self.apath 	= ""    # absolute path of file
-        self.issyml	= False
+        self.fdl	= "u"   # is it file or directory or link or unknown or absent ... values are f d l u a
         self.size 	= -1
+        self.calculated_size = -1
         self.dev 	= -1
         self.inode 	= -1
         self.nlink 	= -1
@@ -40,12 +59,13 @@ class FileDetails:
         self.xhash_top      = ""
         self.xhash_bottom   = ""
 
-    def initialize(self,f,thresholdsize=THRESHOLDSIZE, buffersize=BUFFERSIZE, tb=TB, sed=SED, bottomhash=False):
+    def initialize(self,f,thresholdsize=THRESHOLDSIZE, buffersize=BUFFERSIZE, tb=TB, sed=SED, bottomhash=False,st_block_byte_size=512):
         self.apath  = Path(f).absolute()                         # path is of type PosixPath
         ext         = self.apath.suffix
-        self.issyml	= self.apath.is_symlink()                   # is a symbolic link
-        st		    = os.stat(self.apath)                       # gather all stats
+        self.fld	= get_type(self.apath)                      # get if it is a file or directory or link or unknown or absent
+        st          = self.apath.stat(follow_symlinks=False)    # gather stat results
         self.size 	= st.st_size                                # size in bytes
+        self.calculated_size    = st.st_blocks * st_block_byte_size            # st_blocks gives number of 512 bytes blocks used
         self.dev 	= st.st_dev                                 # Device id
         self.inode 	= st.st_ino                                 # Inode
         self.nlink 	= st.st_nlink		                        # number of hardlinks
@@ -54,39 +74,40 @@ class FileDetails:
         self.ctime	= convert_time_to_age(st.st_ctime)          # creation time
         self.uid	= st.st_uid                                 # user id
         self.gid	= st.st_gid                                 # group id
-        try:
-            with open(self.apath,'rb') as fh:
-                if ext in sed:
-                    if self.size > tb:
-                        data = fh.read(thresholdsize)
-                        data = fh.read(buffersize)
-                        self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
-                        if bottomhash:
-                            fh.seek(-1 * buffersize,2)
+        if self.fld == "f":
+            try:
+                with open(self.apath,'rb') as fh:
+                    if ext in sed:
+                        if self.size > tb:
+                            data = fh.read(thresholdsize)
                             data = fh.read(buffersize)
-                            self.xhash_bottom = xxhash.xxh128(data,seed=SEED).hexdigest()
+                            self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
+                            if bottomhash:
+                                fh.seek(-1 * buffersize,2)
+                                data = fh.read(buffersize)
+                                self.xhash_bottom = xxhash.xxh128(data,seed=SEED).hexdigest()
+                            else:
+                                self.xhash_bottom = self.xhash_top
                         else:
+                            data = fh.read()
+                            self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
                             self.xhash_bottom = self.xhash_top
                     else:
-                        data = fh.read()
-                        self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
-                        self.xhash_bottom = self.xhash_top
-                else:
-                    if self.size > buffersize:
-                        data = fh.read(buffersize)
-                        self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
-                        if bottomhash:
-                            fh.seek(-1 * buffersize,2)
+                        if self.size > buffersize:
                             data = fh.read(buffersize)
-                            self.xhash_bottom = xxhash.xxh128(data,seed=SEED).hexdigest()
+                            self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
+                            if bottomhash:
+                                fh.seek(-1 * buffersize,2)
+                                data = fh.read(buffersize)
+                                self.xhash_bottom = xxhash.xxh128(data,seed=SEED).hexdigest()
+                            else:
+                                self.xhash_bottom = self.xhash_top
                         else:
+                            data = fh.read()
+                            self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
                             self.xhash_bottom = self.xhash_top
-                    else:
-                        data = fh.read()
-                        self.xhash_top = xxhash.xxh128(data,seed=SEED).hexdigest()
-                        self.xhash_bottom = self.xhash_top
-        except:
-            sys.stderr.write("spacesavers2:{}:File cannot be read:{}\n".format(self.__class__.__name__,str(self.apath)))
+            except:
+                sys.stderr.write("spacesavers2:{}:File cannot be read:{}\n".format(self.__class__.__name__,str(self.apath)))
 
     def set(self,ls_line):
         original_ls_line=ls_line
@@ -105,9 +126,9 @@ class FileDetails:
             self.nlink      = int(ls_line.pop(-1))
             self.inode      = int(ls_line.pop(-1))
             self.dev        = int(ls_line.pop(-1))
+            self.calculated_size       = int(ls_line.pop(-1))
             self.size       = int(ls_line.pop(-1))
-            issyml = ls_line.pop(-1)
-            self.issyml     = issyml == 'True'
+            self.fld        = ls_line.pop(-1)
             self.apath      = Path(";".join(ls_line))         # sometimes filename have ";" in them ... hence this!
             return True
         except:
@@ -115,12 +136,13 @@ class FileDetails:
             # exit()            
             return False
     
-    def str_with_name(self,uid2uname,gid2gname):# method for printing output in finddup ... replace "xhash_top;xhash_bottom" with "username;groupname" at the end of the string
+    def str_with_name(self,uid2uname,gid2gname):# method for printing output in mimeo ... replace "xhash_top;xhash_bottom" with "username;groupname" at the end of the string
         # return_str = "\"%s\";"%(self.apath)
         # path may have newline char which should not be interpretted as new line char
         return_str = "\"%s\";"%(str(self.apath).encode('unicode_escape').decode('utf-8'))
-        # return_str += "%s;"%(self.issyml)
+        return_str += "%s;"%(self.fld)
         return_str += "%d;"%(self.size)
+        return_str += "%d;"%(self.calculated_size)
         return_str += "%d;"%(self.dev)
         return_str += "%d;"%(self.inode)
         return_str += "%d;"%(self.nlink)
@@ -137,9 +159,10 @@ class FileDetails:
         # return_str = "\"%s\";"%(self.apath)
         # path may have newline char which should not be interpretted as new line char
         return_str = "\"%s\";"%(str(self.apath).encode('unicode_escape').decode('utf-8'))
-        return_str += "%s;"%(self.issyml)
+        return_str += "%s;"%(self.fld)
         return_str += "%d;"%(self.size)
-        return_str += "%d;"%(self.dev)
+        return_str += "%d;"%(self.calculated_size)
+        return_str += "%d;"%(self.dev) # device id
         return_str += "%d;"%(self.inode)
         return_str += "%d;"%(self.nlink)
         return_str += "%d;"%(self.atime)
@@ -151,11 +174,27 @@ class FileDetails:
         return_str += "%s;"%(self.xhash_bottom)
         return return_str
 
-    def get_paths_at_all_depths(self): # for files
-        return self.apath.parents[:-1]
+    def get_paths_at_all_depths(self): # for files and folders
+        p = self.apath
+        paths = []
+        if self.fld == "d":
+            paths.append(p)
+        paths.extend(p.parents[:-1])    # remove the last one ... which will be '/'
+        return paths
 
     def get_paths(self,mindepth,maxdepth):
-        parents = list(self.apath.parents[0:-1])
-        parents = list(filter(lambda x:get_folder_depth(x) <= maxdepth,parents))
-        parents = list(filter(lambda x:get_folder_depth(x) >= mindepth,parents))
-        return parents
+        paths = self.get_paths_at_all_depths()
+        paths = list(filter(lambda x:get_folder_depth(x) <= maxdepth,paths))
+        paths = list(filter(lambda x:get_folder_depth(x) >= mindepth,paths))
+        return paths
+
+    def get_depth(self):
+        p = self.apath
+        try:
+            if p.is_dir(): # folder
+                return len(list(p.parents))
+            else: # file
+                return len(list(p.parents)) - 1
+        except:
+            print('get_file_depth error for file:"{}", type:{}'.format(path, type(path)))
+            exit()

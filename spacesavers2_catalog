@@ -17,19 +17,17 @@ from pathlib import Path
 
 
 def task(f):
-    if not os.path.isfile(f):
-        return ""
-    else:
-        fd = FileDetails()
-        fd.initialize(
-            f,
-            buffersize=args.buffersize,
-            thresholdsize=args.ignoreheadersize,
-            tb=args.buffersize,
-            sed=sed,
-            bottomhash=args.bottomhash,
-        )
-        return "%s" % (fd)
+    fd = FileDetails()
+    fd.initialize(
+        f,
+        buffersize=args.buffersize,
+        thresholdsize=args.ignoreheadersize,
+        tb=args.buffersize,
+        sed=sed,
+        bottomhash=args.bottomhash,
+        st_block_byte_size=args.st_block_byte_size,
+    )
+    return "%s" % (fd)
 
 
 def main():
@@ -63,7 +61,7 @@ def main():
         required=False,
         type=int,
         default=4,
-        help="number of threads to be used",
+        help="number of threads to be used (default 4)",
     )
     parser.add_argument(
         "-b",
@@ -72,7 +70,7 @@ def main():
         required=False,
         type=int,
         default=128 * 1024,
-        help="buffersize for xhash creation",
+        help="buffersize for xhash creation (default=128 * 1028 bytes)",
     )
     parser.add_argument(
         "-i",
@@ -81,16 +79,25 @@ def main():
         required=False,
         type=int,
         default=1024 * 1024 * 1024,
-        help="this sized header of the file is ignored before extracting buffer of buffersize for xhash creation (only for special extensions files)",
+        help="this sized header of the file is ignored before extracting buffer of buffersize for xhash creation (only for special extensions files) default = 1024 * 1024 * 1024 bytes",
     )
     parser.add_argument(
-        "-s",
+        "-x",
         "--se",
         dest="se",
         required=False,
         type=str,
         default="bam,bai,bigwig,bw,csi",
-        help="comma separated list of special extensions",
+        help="comma separated list of special extensions (default=bam,bai,bigwig,bw,csi)",
+    )
+    parser.add_argument(
+        "-s",
+        "--st_block_byte_size",
+        dest="st_block_byte_size",
+        required=False,
+        default=512,
+        type=int,
+        help="st_block_byte_size on current filesystem (default 512)",
     )
     parser.add_argument(
         "-o",
@@ -120,7 +127,9 @@ def main():
 
     folder = args.folder
     p = Path(folder)
-    files = p.glob("**/*")
+    files = [p]
+    files2 = p.glob("**/*")
+    files.extend(files2)
 
     if args.outfile:
         outfh = open(args.outfile, "w")

@@ -18,12 +18,16 @@ End-to-end run of spacesavers2
 
 options:
   -h, --help            show this help message and exit
-  -i INFOLDER, --infolder INFOLDER
-                        Folder to run spacesavers_ls on.
+  -f FOLDER, --folder FOLDER
+                        Folder to run spacesavers_catalog on.
   -p THREADS, --threads THREADS
                         number of threads to use
+  -d MAXDEPTH, --maxdepth MAXDEPTH
+                        maxdepth for mimeo
+  -l LIMIT, --limit LIMIT
+                        limit for running spacesavers_grubbers
   -q QUOTA, --quota QUOTA
                         total size of the volume (default = 200 for /data/CCBR)
   -o OUTFOLDER, --outfolder OUTFOLDER
-                        Folder where all spacesavers_finddup output files will be saved
+                        Folder where all spacesavers_e2e output files will be saved
 ```

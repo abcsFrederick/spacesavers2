@@ -58,7 +58,7 @@ Example:
 `spacesavers2_catalog` creates one semi-colon seperated output line per input file. Here is an example line:
 
 ```bash
-% head -n1 test.ls_out
+% head -n1 test.catalog
 "/data/CBLCCBR/kopardevn_tmp/spacesavers2_testing/_data_CCBR_Pipeliner_db_PipeDB_Indices.ls.old";False;1653453;47;372851499;1;1;5;5;37513;57886;4707e661a1f3beca1861b9e0e0177461;52e5038016c3dce5b6cdab635765cc79;
 ```
 The 13 items in the line are as follows:

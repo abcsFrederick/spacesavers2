@@ -46,16 +46,24 @@ def main():
         required=True,
         type=str,
         default=sys.stdin,
-        help="spacesavers2_mimeo prefix.<user>.files.gz file",
+        help="spacesavers2_mimeo prefix.<user>.mimeo.files.gz file",
     )
     parser.add_argument(
         "-l",
         "--limit",
         dest="limit",
         required=False,
-        type=int,
+        type=float,
         default=5,
-        help="stop showing duplicates with total size smaller then (5 default) GiB",
+        help="stop showing duplicates with total size smaller than (5 default) GiB. Set 0 for unlimited.",
+    )
+    parser.add_argument(
+        "-o",
+        "--outfile",
+        dest="outfile",
+        required=False,
+        type=str,
+        help="output tab-delimited file (default STDOUT)",
     )
     parser.add_argument("-v", "--version", action="version", version=__version__)
     print_with_timestamp(
@@ -70,24 +78,33 @@ def main():
         for l in filesgz:
             dfu = fgz()
             properly_set = dfu.set(l)
-            if not properly_set:
+            if not properly_set: # could not read line properly or there are no duplicates
                 continue
+            if dfu.ndup == 0: continue # in case mimeo was run without -z
             dups.append(dfu)
 
-    dups.sort()
+    dups.sort() # look at __lt__ ... its sorting from highest to lowest totalsize
     saved = 0
     top_limit = args.limit * 1024 * 1024 * 1024  # 5 GiB
-    for fgitem in dups:
-        saved += fgitem.totalsize
-        if fgitem.totalsize < top_limit:
-            break
-        print(fgitem)
+    if args.outfile:
+        of = open(args.outfile, "w")
+    else:
+        of = sys.stdout
 
-    saved = get_human_readable_size(saved)
+    for fgitem in dups:
+        if fgitem.totalsize <= top_limit:
+            break
+        saved += fgitem.totalsize
+        of.write("%s\n"%(fgitem))
+
+    if args.outfile:
+        of.close()
+
+    hrsaved = get_human_readable_size(saved)
     print_with_timestamp(
         start=start,
         scriptname=scriptname,
-        string="Deleting top grubbers will save {}!".format(saved),
+        string="Deleting top grubbers will save {} [ {} Bytes ] !".format(hrsaved,saved),
     )
     print_with_timestamp(start=start, scriptname=scriptname, string="Done!")
 

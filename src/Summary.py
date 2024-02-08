@@ -29,8 +29,11 @@ class Summary:
     
     def __init__(self,path):
         self.path = path
+        self.nnondup_files = 0
+        self.ndup_files = 0
         self.non_dup_Bytes = []
         self.dup_Bytes = []
+        self.folder_Bytes = 0
         self.non_dup_ages = []
         self.dup_ages = []
         self.non_dup_age_scores = []
@@ -69,7 +72,7 @@ class Summary:
 
     def __str__(self):
         dup_Bytes = sum(self.dup_Bytes)
-        tot_Bytes = sum(self.non_dup_Bytes) + dup_Bytes
+        tot_Bytes = sum(self.non_dup_Bytes) + dup_Bytes + self.folder_Bytes
         try:
             dup_mean_age = sum(self.dup_ages)/len(self.dup_ages)
         except ZeroDivisionError:
@@ -78,8 +81,10 @@ class Summary:
             tot_mean_age = (sum(self.dup_ages) + sum(self.non_dup_ages))/(len(self.dup_ages)+len(self.non_dup_ages))
         except ZeroDivisionError:
             tot_mean_age = 0
-        dup_files = len(self.dup_Bytes)
-        tot_files = dup_files + len(self.non_dup_Bytes)
+        # dup_files = len(self.dup_Bytes)
+        # tot_files = dup_files + len(self.non_dup_Bytes)
+        dup_files = self.ndup_files
+        tot_files = self.nnondup_files + dup_files
         return_str = str(self.path)+"\t"
         return_str += "%d\t"%(tot_Bytes)
         return_str += "%d\t"%(dup_Bytes)
@@ -101,3 +106,12 @@ class Summary:
         return_str += "%d"%(self.OverallScore)
         return return_str
 
+class pathlen:
+    def __init__(self,p,dupbytes):
+        self.path=p
+        self.len=len(p.split("/"))
+        self.dupbytes=dupbytes
+
+    def __str__(self):
+        returnstr="%s"%(self.path)
+        return returnstr

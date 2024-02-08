@@ -19,10 +19,10 @@ The GRUBBER file has the following columns:
 | ------ | ------------------------------------- |
 | 1      | combined hash                         |
 | 2      | number of duplicates found            |
-| 3      | total size of all duplicates          |
-| 4      | size of each duplicate                |
-| 5      | ";"-separated list of duplicates      |
-| 6      | duplicate files                       |
+| 3      | total size of all duplicates (human readable)          |
+| 4      | size of each duplicate (human readable)               |
+| 5      | original file      |
+| 6      | ";"-separated list of duplicates files                       |
 
 ```bash
 usage: spacesavers2_usurp [-h] -g GRUBBER -x HASH [-f | --force | --no-force]

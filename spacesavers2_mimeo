@@ -4,6 +4,8 @@ import os
 import gzip
 import textwrap
 import time
+import shutil
+import subprocess
 
 MINDEPTH = 3
 QUOTA_TB = 20
@@ -16,11 +18,11 @@ version_check()
 from src.FileDetails import FileDetails
 from src.dfUnit import dfUnit
 from src.Summary import Summary
+from src.Summary import pathlen
 from src.utils import *
 from datetime import date
 
 import argparse
-
 
 def process_hh(
     uid,
@@ -30,57 +32,64 @@ def process_hh(
     maxdepth,
     uid2uname,
     gid2gname,
-    peruser_perfolder_summaries,
+    perfolder_summaries,
+    perfolder_dups,
     user_output,
 ):
     for h in hashhash.keys():
-        split_required = False
-        hashhash[h].compute(
-            hashhashsplits, split_required
+        # if files have the same forward and reverse hashes but different sizes then 
+        # hashes are split into multiple hashes with <underscore><splitnumber> suffix
+        # being added to the bottom hash for each size
+        split_required = hashhash[h].compute(
+            hashhashsplits
         )  # compute if split is needed or if we have duplicates
         if split_required:
-            continue  # split is required so move on to the next hash
+            continue  # split is required so move on to the next hash as new hashes with <underscore><splitnumber> have been created by compute and added to hashhashsplits ... deal with them there!
+        # get indexes to files in the flist that belong to user with uid
+        # if uid is zero, then get all file indexes
         uid_file_index = hashhash[h].get_user_file_index(uid)
-        if len(uid_file_index) == 0:
+        if len(uid_file_index) == 0: # user with uid has no files in this set
             continue
-        uid_dup_file_index = []
-        if hashhash[h].ndup > 1:
+        oldest_index = hashhash[h].oldest_index
+        foldest = hashhash[h].flist[oldest_index]
+        user_owns_original = False
+        if foldest.uid == uid or 0 == uid : user_owns_original = True
+        uid_file_index = list(filter(lambda x:x!=oldest_index,uid_file_index)) # remove oldest if present in list
+        inodes_already_summerized = [foldest.inode]
+        if hashhash[h].ndup_files > 0: # we have duplicates
             for i in uid_file_index:
                 f = hashhash[h].flist[i]
+                fpath = f.apath
+                parent = fpath.parent
                 fpaths = f.get_paths(mindepth, maxdepth)
-                if (
-                    i == hashhash[h].oldest_index
-                ):  # its the original file ... not a duplicate
+                if f.inode in inodes_already_summerized: # it is a hardlink
                     for p in fpaths:
-                        peruser_perfolder_summaries[p].non_dup_Bytes.append(f.size)
-                        peruser_perfolder_summaries[p].non_dup_ages.append(f.mtime)
+                        perfolder_summaries[p].ndup_files += 1
                 else:
-                    uid_dup_file_index.append(i)
+                    inodes_already_summerized.append(f.inode)
+                    if not parent in perfolder_dups:
+                        perfolder_dups[fpath.parent] = 0
+                    perfolder_dups[fpath.parent] += f.calculated_size
                     for p in fpaths:
-                        peruser_perfolder_summaries[p].dup_Bytes.append(f.size)
-                        peruser_perfolder_summaries[p].dup_ages.append(f.mtime)
-        else:  # ndup == 1 .. meaning there are no duplicates .. just one file
-            for i in uid_file_index:
-                f = hashhash[h].flist[i]
-                fpaths = f.get_paths(mindepth, maxdepth)
+                        perfolder_summaries[p].ndup_files+=1
+                        perfolder_summaries[p].dup_Bytes.append(f.calculated_size)
+                        perfolder_summaries[p].dup_ages.append(f.mtime)
+        else: # we only have 1 original file
+            if user_owns_original:
+                fpaths = foldest.get_paths(mindepth, maxdepth)
                 for p in fpaths:
-                    peruser_perfolder_summaries[p].non_dup_Bytes.append(f.size)
-                    peruser_perfolder_summaries[p].non_dup_ages.append(f.mtime)
-        if args.duplicatesonly:
-            if len(uid_dup_file_index) > 0:
-                user_output.write(
-                    "{}\n".format(
-                        hashhash[h].str_with_name(
-                            uid2uname, gid2gname, uid_dup_file_index
-                        )
-                    )
-                )
-        else:
-            user_output.write(
-                "{}\n".format(
-                    hashhash[h].str_with_name(uid2uname, gid2gname, uid_file_index)
-                )
+                    perfolder_summaries[p].nnondup_files += 1
+                    perfolder_summaries[p].non_dup_Bytes.append(foldest.calculated_size)
+                    perfolder_summaries[p].non_dup_ages.append(foldest.mtime)
+        out_index = []
+        out_index.append(oldest_index)
+        out_index.extend(uid_file_index)
+        if args.duplicatesonly and len(out_index)==1: continue
+        user_output.write(
+            "{}\n".format(
+                hashhash[h].str_with_name(uid2uname, gid2gname, out_index)
             )
+        )
 
 
 def main():
@@ -105,7 +114,7 @@ def main():
     parser.add_argument(
         "-f",
         "--catalog",
-        dest="lsout",
+        dest="catalog",
         required=True,
         type=str,
         default=sys.stdin,
@@ -119,7 +128,7 @@ def main():
         required=False,
         type=int,
         default=10,
-        help="folder max. depth upto which reports are aggregated",
+        help="folder max. depth upto which reports are aggregated ... absolute path is used to calculate depth (Default: 10)",
     )
 
     parser.add_argument(
@@ -160,6 +169,16 @@ def main():
         action=argparse.BooleanOptionalAction,
         help="Print only duplicates to per user output file.",
     )
+    
+    parser.add_argument(
+        "-k",
+        "--kronaplot",
+        dest="kronaplot",
+        required=False,
+        action=argparse.BooleanOptionalAction,
+        help="Make kronaplots for duplicates.(ktImportText must be in PATH!)",
+    )
+
     parser.add_argument("-v", "--version", action="version", version=__version__)
 
     print_with_timestamp(
@@ -170,31 +189,43 @@ def main():
     args = parser.parse_args()
     quota = args.quota * 1024 * 1024 * 1024 * 1024
 
+    if args.kronaplot:
+        ktImportText_in_path = False
+        if shutil.which("ktImportText") == None:
+            sys.stderr.write("ktImportText(from kronaTools) not found in PATH. kronaplots will not be generated.\n")
+        else:
+            ktImportText_in_path = True
+
     uid2uname = dict()
     gid2gname = dict()
     hashhash = dict()
-    users = set()  # list of all users found
+    users = set()  # list of all uids found
     users.add(0)  # 0 == all users
-    groups = set()  # list of groups
-    paths = set()
-    path_lens = []
+    groups = set()  # list of gids
+    paths = set() # set of all paths possible 
+    path_lens = set() # set of all path depths
     print_with_timestamp(
         start=start, scriptname=scriptname, string="Reading in catalog file..."
     )
     set_complete = True
-    with open(args.lsout) as lsout:
-        for l in lsout:
+    folder_info = dict()
+    with open(args.catalog) as catalog:
+        for l in catalog:
             fd = FileDetails()
             set_complete = fd.set(l)
             if not set_complete:
                 continue
-            if fd.issyml:
+            if fd.fld != "d" and fd.fld !="f": # not a file or folder
                 continue  # ignore all symlinks
             users.add(fd.uid)
             groups.add(fd.gid)
-            path_lens.append(get_file_depth(fd.apath))
+            path_lens.add(fd.get_depth())
             for p in fd.get_paths_at_all_depths():
                 paths.add(p)
+            if fd.fld == "d":
+                if not fd.apath in folder_info:
+                    folder_info[fd.apath] = fd
+                continue
             hash = fd.xhash_top + "#" + fd.xhash_bottom
             if hash == "#":  # happens when file cannot be read
                 sys.stderr.write(
@@ -245,8 +276,13 @@ def main():
         scriptname=scriptname,
         string="Total Number of users: %d" % len(users),
     )
-
+    blamematrixtsv = os.path.join(
+        os.path.abspath(args.outdir), args.prefix + "." + "blamematrix.tsv"
+    )
+    blamematrix = dict()
+    all_blamematrix_paths = set()
     for uid in users:
+        blamematrix[uid] = dict()
         print_with_timestamp(
             start=start,
             scriptname=scriptname,
@@ -258,11 +294,19 @@ def main():
             outfilenameprefix = get_username_groupname(uid)
 
         summaryfilepath = os.path.join(
-            os.path.abspath(args.outdir), outfilenameprefix + ".summary.txt"
+            os.path.abspath(args.outdir), outfilenameprefix + ".mimeo.summary.txt"
         )
         useroutputpath = os.path.join(
-            os.path.abspath(args.outdir), outfilenameprefix + ".files.gz"
+            os.path.abspath(args.outdir), outfilenameprefix + ".mimeo.files.gz"
         )
+        if args.kronaplot:
+            kronatsv = os.path.join(
+                os.path.abspath(args.outdir), outfilenameprefix + ".mimeo.krona.tsv"
+            )
+            if ktImportText_in_path:
+                kronahtml = os.path.join(
+                    os.path.abspath(args.outdir), outfilenameprefix + ".mimeo.krona.html"
+                )
 
         with open(summaryfilepath, "w") as user_summary:
             user_summary.write("%s\n" % (Summary.HEADER))
@@ -270,12 +314,23 @@ def main():
         with gzip.open(useroutputpath, "wt") as user_output, open(
             summaryfilepath, "a"
         ) as user_summary:
-            peruser_perfolder_summaries = dict()
+            perfolder_summaries = dict()
+            perfolder_dups = dict()
             for p in paths:
-                peruser_perfolder_summaries[p] = Summary(p)
-            hashhashsplits = (
-                dict()
-            )  # dict to collect instances where the files are NOT duplicates has same hashes but different sizes (and different inodes) ... new suffix is added to bottomhash .."_iterator"
+                perfolder_summaries[p] = Summary(p)
+                if not p in folder_info:
+                    folder_info[p] = FileDetails()
+                    folder_info[p].initialize(p)
+                fd = folder_info[p]
+                for p2 in fd.get_paths(mindepth,maxdepth):
+                    if not p2 in folder_info:
+                        folder_info[p2] = FileDetails()
+                        folder_info[p2].initialize(p2)
+                    fd2 = folder_info[p2]
+                    if fd2.uid == uid or uid == 0:
+                        perfolder_summaries[p2].folder_Bytes += fd.calculated_size
+
+            hashhashsplits = dict()  # dict to collect instances where the files are NOT duplicates has same hashes but different sizes (and different inodes) ... new suffix is added to bottomhash .."_iterator"
             process_hh(
                 uid,
                 hashhash,
@@ -284,30 +339,81 @@ def main():
                 maxdepth,
                 uid2uname,
                 gid2gname,
-                peruser_perfolder_summaries,
+                perfolder_summaries,
+                perfolder_dups,
                 user_output,
             )
-            hashhashsplitsdummy = dict()
-            process_hh(
-                uid,
-                hashhashsplits,
-                hashhashsplitsdummy,
-                mindepth,
-                maxdepth,
-                uid2uname,
-                gid2gname,
-                peruser_perfolder_summaries,
-                user_output,
-            )
+            if len(hashhashsplits) != 0: 
+                hashhashsplitsdummy = dict()
+                process_hh(
+                    uid,
+                    hashhashsplits,
+                    hashhashsplitsdummy,
+                    mindepth,
+                    maxdepth,
+                    uid2uname,
+                    gid2gname,
+                    perfolder_summaries,
+                    perfolder_dups,
+                    user_output,
+                )
+                del hashhashsplitsdummy
+            del hashhashsplits
             for p in paths:
-                peruser_perfolder_summaries[p].update_scores(quota)
-                user_summary.write(f"{peruser_perfolder_summaries[p]}\n")
+                perfolder_summaries[p].update_scores(quota)
+                user_summary.write(f"{perfolder_summaries[p]}\n")
+            for p in perfolder_summaries:
+                dummy = FileDetails()
+                dummy.initialize(p)
+                if dummy.get_depth() == mindepth + 1:
+                    all_blamematrix_paths.add(p)
+                    blamematrix[uid][p] = sum(perfolder_summaries[p].dup_Bytes)
+        
+        if args.kronaplot:
+            print_with_timestamp(
+                start=start,
+                scriptname=scriptname,
+                string="Creating Kronachart for user: %s" % (uid2uname[uid]),
+            )
+            with open(kronatsv,'w') as ktsv:
+                for p in perfolder_dups:
+                    path = str(p)
+                    path = path.replace('/','\t')
+                    path = path.replace('\t\t','\t')
+                    if perfolder_dups[p] != 0:
+                        ktsv.write("%d\t%s\n"%(perfolder_dups[p],path))
+            if ktImportText_in_path:
+                cmd = "ktImportText %s -o %s"%(kronatsv,kronahtml)
+                srun = subprocess.run(cmd,shell=True, capture_output=True, text=True)
+                if srun.returncode !=0:
+                    sys.stderr.write("%s\n"%(srun.stderr))    
 
     del hashhash
-    del hashhashsplits
-    del hashhashsplitsdummy
-    print_with_timestamp(start=start, scriptname=scriptname, string="Finished!")
 
+    print_with_timestamp(
+        start=start,
+        scriptname=scriptname,
+        string="Creating Blamematrix",
+    )
+    with open(blamematrixtsv,'w') as btsv:
+        outlist = ["path"]
+        uids = list(blamematrix.keys())
+        uids.sort()
+        for uid in uids:
+            outlist.append(uid2uname[uid])
+        btsv.write("\t".join(outlist)+"\n")
+        for p in all_blamematrix_paths:
+            outlist = [str(p)]
+            s = 0
+            for uid in uids:
+                if p in blamematrix[uid]:
+                    s += blamematrix[uid][p]
+                    outlist.append(str(blamematrix[uid][p]))
+                else:
+                    outlist.append(str(0))
+            if s != 0 : btsv.write("\t".join(outlist)+"\n")
+
+    print_with_timestamp(start=start, scriptname=scriptname, string="Finished!")
 
 if __name__ == "__main__":
     main()
