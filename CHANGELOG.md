@@ -1,6 +1,6 @@
 ## spacesavers2 development version
 
-- Move the report to a separate internal repository (@kelly-sovacool)
+- Move the report to a separate internal repository (#79, @kelly-sovacool)
 
 ### New features
 
