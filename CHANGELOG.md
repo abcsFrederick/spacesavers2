@@ -4,6 +4,17 @@
 
 ### Bug fixes
 
+## spacesavers2 0.11.1
+
+### New features
+
+- `spacesavers2_e2e` now shows more defaults in "--help"
+
+### Bug fixes
+
+- grubbers do not include non-duplicate copies (aka hardlinks) (#78, @kopardev)
+- blamematix reports numbers correctly (minor bug fix)
+
 ## spacesavers2 0.11.0
 
 ### New features
