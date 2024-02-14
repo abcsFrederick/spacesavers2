@@ -6,6 +6,15 @@ set -e -o pipefail
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
+# printing version
+if [ $# -eq 1 ];then
+case $1 in
+    -v|--version)
+    spacesavers2_catalog --version
+    exit 0
+esac
+fi
+
 # ncpus=`nproc`
 
 ARGPARSE_DESCRIPTION="End-to-end run of spacesavers2"
@@ -17,6 +26,7 @@ parser.add_argument('-d','--maxdepth',required=False, help='maxdepth for mimeo (
 parser.add_argument('-l','--limit',required=False, help='limit for running spacesavers_grubbers (default 5)', default=5)
 parser.add_argument('-q','--quota',required=False, help='total size of the volume (default = 200 for /data/CCBR)', default=200)
 parser.add_argument('-o','--outfolder',required=True, help='Folder where all spacesavers_e2e output files will be saved')
+parser.add_argument('-v','--version',required=False, action='store_true', help='print version')
 EOF
 
 # assuming that python 3.11 is available with xxhash module
