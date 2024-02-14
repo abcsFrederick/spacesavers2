@@ -4,6 +4,12 @@
 
 ### Bug fixes
 
+## spacesavers2 0.11.2
+
+### New features
+
+- `spacesavers2_e2e` has a new `-v` or `--version` argument to print version of spacesavers2 being used
+
 ## spacesavers2 0.11.1
 
 ### New features
