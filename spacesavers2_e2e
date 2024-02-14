@@ -12,9 +12,9 @@ ARGPARSE_DESCRIPTION="End-to-end run of spacesavers2"
 source ${SCRIPT_DIR}/resources/argparse.bash || exit 1
 argparse "$@" <<EOF || exit 1
 parser.add_argument('-f','--folder',required=True, help='Folder to run spacesavers_catalog on.')
-parser.add_argument('-p','--threads',required=False, help='number of threads to use', default=4)
-parser.add_argument('-d','--maxdepth',required=False, help='maxdepth for mimeo', default=4)
-parser.add_argument('-l','--limit',required=False, help='limit for running spacesavers_grubbers', default=5)
+parser.add_argument('-p','--threads',required=False, help='number of threads to use for catalog (default 4)', default=4)
+parser.add_argument('-d','--maxdepth',required=False, help='maxdepth for mimeo (default 4)', default=4)
+parser.add_argument('-l','--limit',required=False, help='limit for running spacesavers_grubbers (default 5)', default=5)
 parser.add_argument('-q','--quota',required=False, help='total size of the volume (default = 200 for /data/CCBR)', default=200)
 parser.add_argument('-o','--outfolder',required=True, help='Folder where all spacesavers_e2e output files will be saved')
 EOF

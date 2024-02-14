@@ -28,18 +28,21 @@ def convert_time_to_age(t):
 
 def get_type(p):
     x = "u" # unknown
-    if not p.exists():
-        x = "a" # absent
-        return x
-    if p.is_symlink():
-        x = "l" # link or symlink
-        return x
-    if p.is_dir():
-        x = "d" # directory
-        return x
-    if p.is_file():
-        x = "f" # file
-        return x
+    try:
+        if not p.exists():
+            x = "a" # absent
+            return x
+        if p.is_symlink():
+            x = "l" # link or symlink
+            return x
+        if p.is_dir():
+            x = "d" # directory
+            return x
+        if p.is_file():
+            x = "f" # file
+            return x
+    except: # mainly to catch PermissionError:
+        sys.stderr.write("spacesavers2:File cannot be read:{}\n".format(p))
     return x
 
 class FileDetails:
