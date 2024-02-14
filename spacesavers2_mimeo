@@ -56,7 +56,8 @@ def process_hh(
         if foldest.uid == uid or 0 == uid : user_owns_original = True
         uid_file_index = list(filter(lambda x:x!=oldest_index,uid_file_index)) # remove oldest if present in list
         inodes_already_summerized = [foldest.inode]
-        if hashhash[h].ndup_files > 0: # we have duplicates
+        # if hashhash[h].ndup_files > 0: # we have duplicates
+        if len(uid_file_index) > 0: # uid has copies
             for i in uid_file_index:
                 f = hashhash[h].flist[i]
                 fpath = f.apath
@@ -281,6 +282,7 @@ def main():
     )
     blamematrix = dict()
     all_blamematrix_paths = set()
+    # users=[0] # debug only
     for uid in users:
         blamematrix[uid] = dict()
         print_with_timestamp(
@@ -363,9 +365,8 @@ def main():
                 perfolder_summaries[p].update_scores(quota)
                 user_summary.write(f"{perfolder_summaries[p]}\n")
             for p in perfolder_summaries:
-                dummy = FileDetails()
-                dummy.initialize(p)
-                if dummy.get_depth() == mindepth + 1:
+                p_depth = len(list(p.parents))
+                if p_depth == mindepth:
                     all_blamematrix_paths.add(p)
                     blamematrix[uid][p] = sum(perfolder_summaries[p].dup_Bytes)
         
