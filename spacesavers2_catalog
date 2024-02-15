@@ -2,6 +2,7 @@
 
 from src.VersionCheck import version_check
 from src.VersionCheck import __version__
+from src.utils import *
 
 version_check()
 
@@ -130,16 +131,19 @@ def main():
     files2 = p.glob("**/*")
     files.extend(files2)
 
+    broken_links = dict()
+
     if args.outfile:
         outfh = open(args.outfile, 'w')
-        outfh_broken_links = open(args.outfile + ".brokenlinks", 'w')
     else:
         outfh = sys.stdout
 
     with Pool(processes=args.threads) as pool:
         for fd in tqdm.tqdm(pool.imap_unordered(task, files),total=len(files)):
-            if fd.fld == "L": # broken link
-                outfh_broken_links.write(f"{fd.get_filepath()}\n")
+            if fd.get_type() == "L": # broken link
+                uid = fd.get_userid()
+                if not uid in broken_links: broken_links[uid] = list()
+                broken_links[uid].append(fd.get_filepath())
             else:
                 result = "%s" % (fd)
                 if not result == "":
@@ -147,7 +151,15 @@ def main():
 
     if args.outfile:
         outfh.close()
-
+        for uid in broken_links:
+            username = get_username_groupname(uid)
+            outfilename = args.outfile
+            if outfilename.endswith(".txt"):
+                outfilename = outfilename[:-4]
+            outfh_broken_links = open(outfilename + "." + username + ".brokenlinks.txt", 'w')
+            for l in broken_links[uid]:
+                outfh_broken_links.write(f"{l}\n")
+            outfh_broken_links.close()
 
 if __name__ == "__main__":
     main()
