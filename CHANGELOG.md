@@ -4,6 +4,12 @@
 
 ### Bug fixes
 
+## spacesavers2 0.11.3
+
+### New features
+
+- brokenlinks are reported on a per user basis
+
 ## spacesavers2 0.11.2
 
 ### New features
