@@ -27,13 +27,27 @@ def convert_time_to_age(t):
     return age
 
 def get_type(p):
+    # input:
+    # 1. PosixPath object
+    # output:
+    # 1. type of path
+    #   u = unknown
+    #   L = broken symlink
+    #   l = symlink
+    #   f = file
+    #   d = folder or directory
     x = "u" # unknown
     try:
-        if not p.exists():
-            x = "a" # absent
-            return x
         if p.is_symlink():
             x = "l" # link or symlink
+            try:
+                p.exists()
+            except:
+                x = "L" # upper case L is broken symlink
+                sys.stderr.write("spacesavers2:Broken symlink found:{}\n".format(p))
+            return x
+        if not p.exists():
+            x = "a" # absent
             return x
         if p.is_dir():
             x = "d" # directory
@@ -158,6 +172,9 @@ class FileDetails:
         return_str += "%s;"%(gid2gname[self.gid])
         return return_str
 
+    def get_filepath(self):
+        return "\"%s\""%(str(self.apath).encode('unicode_escape').decode('utf-8'))
+
     def __str__(self):    
         # return_str = "\"%s\";"%(self.apath)
         # path may have newline char which should not be interpretted as new line char
@@ -199,5 +216,11 @@ class FileDetails:
             else: # file
                 return len(list(p.parents)) - 1
         except:
-            print('get_file_depth error for file:"{}", type:{}'.format(path, type(path)))
-            exit()
+            print('get_file_depth error for file:"{}", type:{}'.format(p, type(p)))
+            return -1
+    
+    def get_type(self):
+        return self.fld
+    
+    def get_userid(self):
+        return self.uid

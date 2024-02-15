@@ -2,13 +2,13 @@
 
 from src.VersionCheck import version_check
 from src.VersionCheck import __version__
+from src.utils import *
 
 version_check()
 
 # import required modules
-import glob
 import textwrap
-import os
+import tqdm
 import sys
 from src.FileDetails import FileDetails
 from multiprocessing import Pool
@@ -27,7 +27,7 @@ def task(f):
         bottomhash=args.bottomhash,
         st_block_byte_size=args.st_block_byte_size,
     )
-    return "%s" % (fd)
+    return fd
 
 
 def main():
@@ -131,19 +131,35 @@ def main():
     files2 = p.glob("**/*")
     files.extend(files2)
 
+    broken_links = dict()
+
     if args.outfile:
-        outfh = open(args.outfile, "w")
+        outfh = open(args.outfile, 'w')
     else:
         outfh = sys.stdout
 
     with Pool(processes=args.threads) as pool:
-        for result in pool.imap_unordered(task, files):
-            if not result == "":
-                outfh.write(f"{result}\n")
+        for fd in tqdm.tqdm(pool.imap_unordered(task, files),total=len(files)):
+            if fd.get_type() == "L": # broken link
+                uid = fd.get_userid()
+                if not uid in broken_links: broken_links[uid] = list()
+                broken_links[uid].append(fd.get_filepath())
+            else:
+                result = "%s" % (fd)
+                if not result == "":
+                    outfh.write(f"{result}\n")
 
     if args.outfile:
         outfh.close()
-
+        for uid in broken_links:
+            username = get_username_groupname(uid)
+            outfilename = args.outfile
+            if outfilename.endswith(".txt"):
+                outfilename = outfilename[:-4]
+            outfh_broken_links = open(outfilename + "." + username + ".brokenlinks.txt", 'w')
+            for l in broken_links[uid]:
+                outfh_broken_links.write(f"{l}\n")
+            outfh_broken_links.close()
 
 if __name__ == "__main__":
     main()
