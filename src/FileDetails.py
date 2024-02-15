@@ -27,6 +27,15 @@ def convert_time_to_age(t):
     return age
 
 def get_type(p):
+    # input:
+    # 1. PosixPath object
+    # output:
+    # 1. type of path
+    #   u = unknown
+    #   L = broken symlink
+    #   l = symlink
+    #   f = file
+    #   d = folder or directory
     x = "u" # unknown
     try:
         if p.is_symlink():
@@ -209,3 +218,9 @@ class FileDetails:
         except:
             print('get_file_depth error for file:"{}", type:{}'.format(p, type(p)))
             return -1
+    
+    def get_type(self):
+        return self.fld
+    
+    def get_userid(self):
+        return self.uid
