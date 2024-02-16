@@ -27,13 +27,27 @@ def convert_time_to_age(t):
     return age
 
 def get_type(p):
+    # input:
+    # 1. PosixPath object
+    # output:
+    # 1. type of path
+    #   u = unknown
+    #   L = broken symlink
+    #   l = symlink
+    #   f = file
+    #   d = folder or directory
     x = "u" # unknown
     try:
-        if not p.exists():
-            x = "a" # absent
-            return x
         if p.is_symlink():
             x = "l" # link or symlink
+            try:
+                p.exists()
+            except:
+                x = "L" # upper case L is broken symlink
+                sys.stderr.write("spacesavers2:Broken symlink found:{}\n".format(p))
+            return x
+        if not p.exists():
+            x = "a" # absent
             return x
         if p.is_dir():
             x = "d" # directory
@@ -51,6 +65,7 @@ class FileDetails:
         self.fdl	= "u"   # is it file or directory or link or unknown or absent ... values are f d l u a
         self.size 	= -1
         self.calculated_size = -1
+        self.calculated_size_human_readable = ""
         self.dev 	= -1
         self.inode 	= -1
         self.nlink 	= -1
@@ -69,12 +84,13 @@ class FileDetails:
         st          = self.apath.stat(follow_symlinks=False)    # gather stat results
         self.size 	= st.st_size                                # size in bytes
         self.calculated_size    = st.st_blocks * st_block_byte_size            # st_blocks gives number of 512 bytes blocks used
+        self.calculated_size_human_readable = get_human_readable_size(self.calculated_size)
         self.dev 	= st.st_dev                                 # Device id
         self.inode 	= st.st_ino                                 # Inode
         self.nlink 	= st.st_nlink		                        # number of hardlinks
         self.atime	= convert_time_to_age(st.st_atime)          # access time
         self.mtime	= convert_time_to_age(st.st_mtime)          # modification time
-        self.ctime	= convert_time_to_age(st.st_ctime)          # creation time
+        self.ctime	= convert_time_to_age(st.st_ctime)          # change time
         self.uid	= st.st_uid                                 # user id
         self.gid	= st.st_gid                                 # group id
         if self.fld == "f":
@@ -158,6 +174,9 @@ class FileDetails:
         return_str += "%s;"%(gid2gname[self.gid])
         return return_str
 
+    def get_filepath(self):
+        return "\"%s\""%(str(self.apath).encode('unicode_escape').decode('utf-8'))
+
     def __str__(self):    
         # return_str = "\"%s\";"%(self.apath)
         # path may have newline char which should not be interpretted as new line char
@@ -199,5 +218,20 @@ class FileDetails:
             else: # file
                 return len(list(p.parents)) - 1
         except:
-            print('get_file_depth error for file:"{}", type:{}'.format(path, type(path)))
-            exit()
+            print('get_file_depth error for file:"{}", type:{}'.format(p, type(p)))
+            return -1
+    
+    def get_type(self):
+        return self.fld
+    
+    def get_userid(self):
+        return self.uid
+
+    def get_age(self):
+        return self.mtime
+    
+    def get_size(self):
+        return self.calculated_size
+    
+    def get_size_human_readable(self):
+        return self.calculated_size_human_readable

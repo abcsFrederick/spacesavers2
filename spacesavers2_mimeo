@@ -6,6 +6,7 @@ import textwrap
 import time
 import shutil
 import subprocess
+import tqdm
 
 MINDEPTH = 3
 QUOTA_TB = 20
@@ -211,7 +212,7 @@ def main():
     set_complete = True
     folder_info = dict()
     with open(args.catalog) as catalog:
-        for l in catalog:
+        for l in tqdm.tqdm(catalog): 
             fd = FileDetails()
             set_complete = fd.set(l)
             if not set_complete:

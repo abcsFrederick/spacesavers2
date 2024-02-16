@@ -21,7 +21,8 @@ ARGPARSE_DESCRIPTION="End-to-end run of spacesavers2"
 source ${SCRIPT_DIR}/resources/argparse.bash || exit 1
 argparse "$@" <<EOF || exit 1
 parser.add_argument('-f','--folder',required=True, help='Folder to run spacesavers_catalog on.')
-parser.add_argument('-p','--threads',required=False, help='number of threads to use for catalog (default 4)', default=4)
+parser.add_argument('-p','--prefix',required=True, help='Prefix for output files.')
+parser.add_argument('-t','--threads',required=False, help='number of threads to use for catalog (default 4)', default=4)
 parser.add_argument('-d','--maxdepth',required=False, help='maxdepth for mimeo (default 4)', default=4)
 parser.add_argument('-l','--limit',required=False, help='limit for running spacesavers_grubbers (default 5)', default=5)
 parser.add_argument('-q','--quota',required=False, help='total size of the volume (default = 200 for /data/CCBR)', default=200)
@@ -29,73 +30,91 @@ parser.add_argument('-o','--outfolder',required=True, help='Folder where all spa
 parser.add_argument('-v','--version',required=False, action='store_true', help='print version')
 EOF
 
-# assuming that python 3.11 is available with xxhash module
-# . "/data/CCBR_Pipeliner/db/PipeDB/Conda/etc/profile.d/conda.sh" && conda activate py311
-
-if [ "$SLURM_JOB_ID" == "" ]; then 
-    tmpdir="$OUTFOLDER"
-else
-    tmpdir="/lscratch/${SLURM_JOB_ID}"
-fi
-
 # run spacesavers2
-dt=$(date +%Y%m%d)
-prefix=$(echo "${dt}.${FOLDER}"|sed "s/\//_/g")
-outfile_catalog="${OUTFOLDER}/${prefix}.catalog"
-outfile_catalog_err="${OUTFOLDER}/${prefix}.catalog.err"
-outfile_catalog_log="${OUTFOLDER}/${prefix}.catalog.log"
-outfile_mimeo_log="${OUTFOLDER}/${prefix}.mimeo.log"
-outfile_mimeo_err="${OUTFOLDER}/${prefix}.mimeo.err"
-
-outfile_blamematrix="${OUTFOLDER}/${prefix}.blamematrix.tsv"
-outfile_blamematrix_log="${OUTFOLDER}/${prefix}.blamematrix.log"
-outfile_blamematrix_err="${OUTFOLDER}/${prefix}.blamematrix.err"
+# dt=$(date +%Y%m%d)
+# PREFIX=$(echo "${dt}.${FOLDER}"|sed "s/\//_/g")
+outfile_catalog="${OUTFOLDER}/${PREFIX}.catalog"
+outfile_catalog_err="${OUTFOLDER}/${PREFIX}.catalog.err"
+outfile_catalog_log="${OUTFOLDER}/${PREFIX}.catalog.log"
+outfile_mimeo_log="${OUTFOLDER}/${PREFIX}.mimeo.log"
+outfile_mimeo_err="${OUTFOLDER}/${PREFIX}.mimeo.err"
+outfile_blamematrix="${OUTFOLDER}/${PREFIX}.blamematrix.tsv"
+outfile_blamematrix_log="${OUTFOLDER}/${PREFIX}.blamematrix.log"
+outfile_blamematrix_err="${OUTFOLDER}/${PREFIX}.blamematrix.err"
 
 if [ ! -d $OUTFOLDER ];then mkdir -p $OUTFOLDER;fi
 
 # spacesavers2_catalog
-if [ "$?" == "0" ];then
-echo "Running spacesavers2_catalog" && \
+if [ -d $OUTFOLDER ];then
+echo "Running spacesavers2_catalog..."
+echo "Creating File: $outfile_catalog"
+cmd=$(
+cat << EOF
 spacesavers2_catalog \
     --folder $FOLDER \
     --threads $THREADS \
     --outfile ${outfile_catalog} \
     --bottomhash \
+    --brokenlink \
+    --geezers \
     > ${outfile_catalog_log} 2> ${outfile_catalog_err}
+EOF
+)
+echo $cmd
+eval $cmd
 fi
 
 sleep 60
 
 # spacesavers2_mimeo
-if [ "$?" == "0" ];then
-echo "Running spacesavers2_mimeo" 
+echo "Running spacesavers2_mimeo..." 
 command -V ktImportText 2>/dev/null || module load kronatools || (>&2 echo "module kronatools could not be loaded")
+if [ ! -f "${outfile_catalog}" ];then
+    echo "Creation of ${outfile_catalog} FAILED!!"
+    exit 1
+fi
+cmd=$(
+cat << EOF
 spacesavers2_mimeo \
     --catalog ${outfile_catalog} \
     --outdir ${OUTFOLDER} \
     --quota $QUOTA \
     --duplicatesonly \
     --maxdepth $MAXDEPTH \
-    --p $prefix \
+    --p $PREFIX \
     --kronaplot \
     > ${outfile_mimeo_log} 2> ${outfile_mimeo_err}
-fi
+EOF
+)
+echo $cmd
+eval $cmd
 
 sleep 60
 
 # spacesavers2_grubbers
-if [ "$?" == "0" ];then
-echo "Running spacesavers2_grubbers" && \
-for filegz in `ls ${OUTFOLDER}/${prefix}*files.gz`;do
+echo "Running spacesavers2_grubbers..."
+nfilesgz=$(ls ${OUTFOLDER}/${PREFIX}*mimeo.files.gz|wc -l)
+if [ $nfilesgz -eq 0 ];then
+    echo "No mimeo files were created! spacesavers2_mimeo FAILED!"
+    exit 1
+fi
+for filegz in `ls ${OUTFOLDER}/${PREFIX}*files.gz`;do
+    echo "Finding grubbers using $filegz"
     outfile=`echo $filegz|sed "s/mimeo.files.gz/grubbers.tsv/g"`
     logfile=`echo $filegz|sed "s/mimeo.files.gz/grubbers.log/g"`
     errfile=`echo $filegz|sed "s/mimeo.files.gz/grubbers.err/g"`
+    cmd=$(
+cat << EOF
     spacesavers2_grubbers \
         --filesgz $filegz \
         --limit $LIMIT \
         --outfile $outfile \
         > $logfile 2> $errfile
+EOF
+)
+    echo $cmd
+    eval $cmd
 done
-fi
+
 
 echo "Done!"

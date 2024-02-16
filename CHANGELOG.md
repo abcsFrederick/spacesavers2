@@ -4,6 +4,22 @@
 
 ### Bug fixes
 
+## spacesavers2 0.11.4
+
+### New features
+
+- `--geezers`, `--geezerage` and `--geezersize` arguments are added to `spacesavers2_catalog` to report really old files per user.
+- documents updated
+
+### Bug fixes
+
+## spacesavers2 0.11.3
+
+### New features
+
+- brokenlinks are reported on a per user basis
+- progress bar added to `spacesavers2_catalog` and `spacesavers2_mimeo`
+
 ## spacesavers2 0.11.2
 
 ### New features
