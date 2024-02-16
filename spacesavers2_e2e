@@ -55,6 +55,8 @@ spacesavers2_catalog \
     --threads $THREADS \
     --outfile ${outfile_catalog} \
     --bottomhash \
+    --brokenlink \
+    --geezers \
     > ${outfile_catalog_log} 2> ${outfile_catalog_err}
 EOF
 )
