@@ -36,7 +36,7 @@ def main():
     Version:
         {}
     Example:
-        > spacesavers2_catalog -f /path/to/folder -p 56 -e
+        > spacesavers2_catalog -f /path/to/folder -p 56 -e -l -g
         """.format(
             __version__
         )
@@ -115,6 +115,40 @@ def main():
         action=argparse.BooleanOptionalAction,
         help="separately calculated second hash for the bottom/end of the file.",
     )
+    parser.add_argument(
+        "-l",
+        "--brokenlink",
+        dest="brokenlink",
+        required=False,
+        action=argparse.BooleanOptionalAction,
+        help="output per-user broken links list.",
+    )
+    parser.add_argument(
+        "-g",
+        "--geezers",
+        dest="geezers",
+        required=False,
+        action=argparse.BooleanOptionalAction,
+        help="output per-user geezer files list.",
+    )
+    parser.add_argument(
+        "-a",
+        "--geezerage",
+        dest="geezerage",
+        required=False,
+        default= 5 * 365,
+        type=int,
+        help="age in days to be considered a geezer file (default 5yrs ... 5 * 365).",
+    )
+    parser.add_argument(
+        "-z",
+        "--geezersize",
+        dest="geezersize",
+        required=False,
+        default= 10 * 1024 * 1024,
+        type=int,
+        help="minimum size in bytes of geezer file to be reported (default 10MiB ... 10 * 1024 * 1024).",
+    )
     parser.add_argument("-v", "--version", action="version", version=__version__)
 
     global args
@@ -132,6 +166,7 @@ def main():
     files.extend(files2)
 
     broken_links = dict()
+    geezers = dict()
 
     if args.outfile:
         outfh = open(args.outfile, 'w')
@@ -140,26 +175,46 @@ def main():
 
     with Pool(processes=args.threads) as pool:
         for fd in tqdm.tqdm(pool.imap_unordered(task, files),total=len(files)):
+            uid = fd.get_userid()
             if fd.get_type() == "L": # broken link
-                uid = fd.get_userid()
                 if not uid in broken_links: broken_links[uid] = list()
                 broken_links[uid].append(fd.get_filepath())
             else:
                 result = "%s" % (fd)
                 if not result == "":
                     outfh.write(f"{result}\n")
+                    if fd.get_type() == "f":
+                        age = fd.get_age()
+                        size = fd.get_size()
+                        if age > args.geezerage and size > args.geezersize:
+                            x = list()
+                            x.append("{0:.2f} yrs".format(age/365))
+                            x.append(fd.get_size_human_readable())
+                            x.append(fd.get_filepath())
+                            if not uid in geezers: geezers[uid] = list()
+                            geezers[uid].append("\t".join(x))
 
     if args.outfile:
         outfh.close()
-        for uid in broken_links:
-            username = get_username_groupname(uid)
-            outfilename = args.outfile
-            if outfilename.endswith(".txt"):
-                outfilename = outfilename[:-4]
-            outfh_broken_links = open(outfilename + "." + username + ".brokenlinks.txt", 'w')
-            for l in broken_links[uid]:
-                outfh_broken_links.write(f"{l}\n")
-            outfh_broken_links.close()
-
+        if args.brokenlink: # spit out broken links
+            for uid in broken_links:
+                username = get_username_groupname(uid)
+                outfilename = args.outfile
+                if outfilename.endswith(".txt"):
+                    outfilename = outfilename[:-4]
+                outfh_broken_links = open(outfilename + "." + username + ".brokenlinks.txt", 'w')
+                for l in broken_links[uid]:
+                    outfh_broken_links.write(f"{l}\n")
+                outfh_broken_links.close()
+        if args.geezers:
+            for uid in geezers:
+                username = get_username_groupname(uid)
+                outfilename = args.outfile
+                if outfilename.endswith(".txt"):
+                    outfilename = outfilename[:-4]
+                outfh_geezers = open(outfilename + "." + username + ".geezers.txt", 'w')
+                for l in geezers[uid]:
+                    outfh_geezers.write(f"{l}\n")
+                outfh_geezers.close()
 if __name__ == "__main__":
     main()
