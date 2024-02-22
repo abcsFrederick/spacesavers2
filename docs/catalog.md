@@ -106,8 +106,11 @@ The 13 items in the line are as follows:
   - simply lists the paths which are symbolic links, but the destination files do not exist anymore!
   - one file per username.
 
+> DISCLAIMER:
+>  - may contain false-positives if the user running `spacesavers2_catalog` does not have read access to the symlinks destination
+
 ## geezer file
 
-  - lists really old file.
+  - lists really old files (default > 5 years).
   - list has 3 columns: age, size and path.
   - one file per username.
