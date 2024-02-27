@@ -33,7 +33,7 @@ options:
   -v, --version         show program's version number and exit
 
 Version:
-    v0.12.0
+    v0.11.5
 Example:
     > spacesavers2_pdq -f /path/to/folder -p 4 -o /path/to/output_file
 ```
