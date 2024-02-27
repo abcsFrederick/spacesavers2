@@ -30,6 +30,7 @@
 - [spacesavers2_blamematrix](blamematrix.md)
 - [spacesavers2_usurp](usurp.md)
 - [spacesavers2_e2e](e2e.md)
+- [spacesavers2_pdq](pdq.md)
 
 ## Use case
 
