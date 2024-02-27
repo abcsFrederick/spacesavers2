@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+# pqd = pretty darn quick
+
+from src.VersionCheck import version_check
+from src.VersionCheck import __version__
+from src.utils import *
+
+version_check()
+
+# import required modules
+import textwrap
+import tqdm
+import sys
+from src.pdq import pdq
+from multiprocessing import Pool
+import argparse
+from pathlib import Path
+
+
+def task(f):
+    fd = pdq()
+    fd.set(f)
+    return fd
+
+
+def main():
+    elog = textwrap.dedent(
+        """\
+    Version:
+        {}
+    Example:
+        > spacesavers2_pdq -f /path/to/folder -p 4 -o /path/to/output_file
+        """.format(
+            __version__
+        )
+    )
+    parser = argparse.ArgumentParser(
+        description="spacesavers2_pdq: get quick per user info (number of files and bytes).",
+        epilog=elog,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "-f",
+        "--folder",
+        dest="folder",
+        required=True,
+        type=str,
+        help="spacesavers2_pdq will be run on all files in this folder and its subfolders",
+    )
+    parser.add_argument(
+        "-p",
+        "--threads",
+        dest="threads",
+        required=False,
+        type=int,
+        default=4,
+        help="number of threads to be used (default 4)",
+    )
+    parser.add_argument(
+        "-o",
+        "--outfile",
+        dest="outfile",
+        required=False,
+        type=str,
+        help="outfile ... catalog file .. by default output is printed to screen",
+    )
+    parser.add_argument("-v", "--version", action="version", version=__version__)
+
+    global args
+    args = parser.parse_args()
+
+    folder = args.folder
+    p = Path(folder)
+    files = [p]
+    files2 = p.glob("**/*")
+    files.extend(files2)
+
+    if args.outfile:
+        outfh = open(args.outfile, 'w')
+    else:
+        outfh = sys.stdout
+
+    bigdict=dict()
+
+    with Pool(processes=args.threads) as pool:
+        for fd in tqdm.tqdm(pool.imap_unordered(task, files),total=len(files)):
+            if not fd.is_file(): continue
+            uid = fd.get_uid()
+            if not uid in bigdict: bigdict[uid]=dict()
+            inode = fd.get_inode()
+            if not inode in bigdict[uid]: bigdict[uid][inode]=fd.get_size()
+        
+    for uid in bigdict.keys():
+        username = get_username_groupname(uid)
+        nfiles = len(bigdict[uid])
+        nbytes = 0
+        for inode in bigdict[uid].keys():
+            nbytes += bigdict[uid][inode]
+        outfh.write(f"{username}\t{nfiles}\t{nbytes}\n")
+    
+    if args.outfile:
+        outfh.close()
+
+if __name__ == "__main__":
+    main()

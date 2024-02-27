@@ -4,6 +4,12 @@
 
 ### Bug fixes
 
+## spacesavers2 0.11.5
+
+### New features
+
+- new command `spacesavers2_pdq` to get per-user number of files and number of bytes
+
 ## spacesavers2 0.11.4
 
 ### New features
