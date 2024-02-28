@@ -67,15 +67,15 @@ Here is an example output:
 
 ```
 {
- "/path/to/some/folder": {
+ "/path/to/some/folder   ": {
   "1234": {
    "username": "user1",
-   "nfiles": 1267,
+   "ninodes": 1267,
    "nbytes": 96084992
   },
   "4356": {
    "username": "user2",
-   "nfiles": 895,
+   "ninodes": 895,
    "nbytes": 89249280
   }
  }
