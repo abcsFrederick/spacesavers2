@@ -1,8 +1,16 @@
 ## spacesavers2 development version
 
+- Move the report to a separate internal repository (#79, @kelly-sovacool)
+
 ### New features
 
 ### Bug fixes
+
+## spacesavers2 0.11.5
+
+### New features
+
+- new command `spacesavers2_pdq` to get per-user number of files and number of bytes
 
 ## spacesavers2 0.11.4
 
@@ -54,11 +62,11 @@
 - `grubbers` `--limit` can be < 1 GiB (float) (#70, @kopardev)
 - `grubbers` output file format changed. New original file column added. Original file is required by `usurp`.
 - `mimeo` `--duplicateonly` now correctly handles duplicates owned by different UIDs. (#71, @kopardev)
-    - Update `blamematrix` and to account for corrected duplicate handling in `mimeo`.
+  - Update `blamematrix` and to account for corrected duplicate handling in `mimeo`.
 - `usurp` now uses the new "original file" column from `grubbers` while creating hard-links.
 - Total size now closely resembles `df` results (fix #75 @kopardev)
 - Files with future timestamps are handled correctly (fix #76, @kopardev)
-  
+
 ## spacesavers2 0.10.2
 
 - Now tracking user-facing changes with a changelog. (#61, @kelly-sovacool)
