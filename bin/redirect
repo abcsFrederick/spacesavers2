@@ -13,10 +13,12 @@ TOOLNAME=$(basename "$SCRIPTNAME")
 
 # find out if you are running on biowulf or frce
 nbiowulf=$(scontrol show config 2>/dev/null | grep -i -c biowulf)
-if [[ "$nbiowulf" > 0 ]];then ISBIOWULF=true; else ISBIOWULF=false;fi
+if [[ $nbiowulf -gt 0 ]];then ISBIOWULF=true; else ISBIOWULF=false;fi
 nfrce=$(scontrol show config 2>/dev/null | grep -i -c fsitgl)
-if [[ "$nfrce" > 0 ]];then ISFRCE=true; else ISFRCE=false;fi
+if [[ $nfrce -gt 0 ]];then ISFRCE=true; else ISFRCE=false;fi
+if [[ $ISBIOWULF == false ]];then
 if [[ "$HOSTNAME" == "helix.nih.gov" ]];then ISBIOWULF=true; else ISBIOWULF=false;fi
+fi
 
 # load conda
 run=1
