@@ -1,12 +1,19 @@
 ## spacesavers2 development version
 
-- Move the report to a separate internal repository (#79, @kelly-sovacool)
-- new option `--json` for `spacesavers2_pdq`
-- `redirect` script now checks if running on BIOWULF or FRCE. If not, then checks for python version and "xxhash" library (fix #91, @kopardev)
-
 ### New features
 
 ### Bug fixes
+
+## spacesavers2 0.11.6
+
+### New features
+
+- Move the report to a separate internal repository (#79, @kelly-sovacool)
+- new option `--json` for `spacesavers2_pdq`
+
+### Bug fixes
+
+- `redirect` script now checks if running on BIOWULF or FRCE. If not, then checks for python version and "xxhash" library (fix #91, @kopardev)
 
 ## spacesavers2 0.11.5
 
