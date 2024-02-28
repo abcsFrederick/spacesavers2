@@ -4,6 +4,8 @@
 
 ### Bug fixes
 
+- `spacesavers2_pdq` not does NOT ignore links and folders (#93, @kopardev)
+
 ## spacesavers2 0.11.6
 
 ### New features
