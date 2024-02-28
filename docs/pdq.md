@@ -13,12 +13,13 @@ It is quick tool to gather datapoints to monitor filesystem usage. Typically, ca
 ### Inputs
  - `--folder`: Path to the folder to run `spacesavers2_pdq` on.
  - `--threads`: `spacesavers2_pdq` uses multiprocessing library to parallelize orchestration. This defines the number of threads to run in parallel.
- - `--outfile`: If not supplied then the optput is written to the screen.
+ - `--outfile`: If not supplied then the output is written to the screen.
+ - `--json`: Optional, if provided output is also written in JSON format.
 
 > NOTE: `spacesavers2_pdq` reports errors (eg. cannot read file) to STDERR
 
 ```bash
-usage: spacesavers2_pdq [-h] -f FOLDER [-p THREADS] [-o OUTFILE] [-v]
+usage: spacesavers2_pdq [-h] -f FOLDER [-p THREADS] [-o OUTFILE] [-j JSON] [-v]
 
 spacesavers2_pdq: get quick per user info (number of files and bytes).
 
@@ -29,11 +30,12 @@ options:
   -p THREADS, --threads THREADS
                         number of threads to be used (default 4)
   -o OUTFILE, --outfile OUTFILE
-                        outfile ... catalog file .. by default output is printed to screen
+                        outfile ... by default output is printed to screen
+  -j JSON, --json JSON  outfile file in JSON format.
   -v, --version         show program's version number and exit
 
 Version:
-    v0.11.5
+    v0.11.6
 Example:
     > spacesavers2_pdq -f /path/to/folder -p 4 -o /path/to/output_file
 ```
@@ -58,3 +60,24 @@ The 3 items in the line are as follows:
 | 1      | username                 | "user1" |
 | 2      | total no. of files owned     | 1386138                                                                                          |
 | 3      | total no. of bytes occupied      | 6089531321856                                                                                        |
+
+## JSON output 
+
+Here is an example output:
+
+```
+{
+ "/data/CCBR_Pipeliner/Tools/spacesavers2": {
+  "37513": {
+   "username": "kopardevn",
+   "nfiles": 1267,
+   "nbytes": 96084992
+  },
+  "60731": {
+   "username": "sovacoolkl",
+   "nfiles": 895,
+   "nbytes": 89249280
+  }
+ }
+}
+```

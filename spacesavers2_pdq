@@ -15,6 +15,7 @@ from src.pdq import pdq
 from multiprocessing import Pool
 import argparse
 from pathlib import Path
+import json
 
 
 def task(f):
@@ -62,7 +63,15 @@ def main():
         dest="outfile",
         required=False,
         type=str,
-        help="outfile ... catalog file .. by default output is printed to screen",
+        help="outfile ...  by default output is printed to screen",
+    )
+    parser.add_argument(
+        "-j",
+        "--json",
+        dest="json",
+        required=False,
+        type=str,
+        help="outfile file in JSON format.",
     )
     parser.add_argument("-v", "--version", action="version", version=__version__)
 
@@ -70,7 +79,7 @@ def main():
     args = parser.parse_args()
 
     folder = args.folder
-    p = Path(folder)
+    p = Path(folder).absolute()
     files = [p]
     files2 = p.glob("**/*")
     files.extend(files2)
@@ -79,6 +88,9 @@ def main():
         outfh = open(args.outfile, 'w')
     else:
         outfh = sys.stdout
+
+    if args.json:
+        outjson = open(args.json, 'w')
 
     bigdict=dict()
 
@@ -89,15 +101,26 @@ def main():
             if not uid in bigdict: bigdict[uid]=dict()
             inode = fd.get_inode()
             if not inode in bigdict[uid]: bigdict[uid][inode]=fd.get_size()
-        
+
+    outdict=dict()
+    outdict[str(p)]=dict()
+
     for uid in bigdict.keys():
         username = get_username_groupname(uid)
+        outdict[str(p)][str(uid)]=dict()
         nfiles = len(bigdict[uid])
         nbytes = 0
         for inode in bigdict[uid].keys():
             nbytes += bigdict[uid][inode]
+        outdict[str(p)][str(uid)]['username']=username
+        outdict[str(p)][str(uid)]['nfiles']=nfiles
+        outdict[str(p)][str(uid)]['nbytes']=nbytes
         outfh.write(f"{username}\t{nfiles}\t{nbytes}\n")
     
+    if args.json:
+        json.dump(outdict,outjson,indent=1)
+        outjson.close()
+
     if args.outfile:
         outfh.close()
 
