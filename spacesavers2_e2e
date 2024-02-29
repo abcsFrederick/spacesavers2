@@ -3,6 +3,7 @@
 # spacesavers2 end-to-end wrapper script
 ####################################################################################
 set -e -o pipefail
+sleep_duration=10
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
@@ -44,10 +45,12 @@ outfile_blamematrix_err="${OUTFOLDER}/${PREFIX}.blamematrix.err"
 
 if [ ! -d $OUTFOLDER ];then mkdir -p $OUTFOLDER;fi
 
+exit_code=0
 # spacesavers2_catalog
 if [ -d $OUTFOLDER ];then
 echo "Running spacesavers2_catalog..."
 echo "Creating File: $outfile_catalog"
+spacesavers2_catalog --version
 cmd=$(
 cat << EOF
 spacesavers2_catalog \
@@ -56,15 +59,21 @@ spacesavers2_catalog \
     --outfile ${outfile_catalog} \
     --bottomhash \
     --brokenlink \
-    --geezers \
-    > ${outfile_catalog_log} 2> ${outfile_catalog_err}
+    --geezers --quite
 EOF
 )
 echo $cmd
-eval $cmd
+$cmd > ${outfile_catalog_log} 2> ${outfile_catalog_err}
+exit_code=$?
+echo "ExitCode:$exit_code"
+if [ $exit_code -ne 0 ];then 
+    exit 1
+fi
+else # exit if $OUTFOLDER does not exist
+    exit 1
 fi
 
-sleep 60
+sleep $sleep_duration
 
 # spacesavers2_mimeo
 echo "Running spacesavers2_mimeo..." 
@@ -73,6 +82,7 @@ if [ ! -f "${outfile_catalog}" ];then
     echo "Creation of ${outfile_catalog} FAILED!!"
     exit 1
 fi
+spacesavers2_mimeo --version
 cmd=$(
 cat << EOF
 spacesavers2_mimeo \
@@ -82,14 +92,19 @@ spacesavers2_mimeo \
     --duplicatesonly \
     --maxdepth $MAXDEPTH \
     --p $PREFIX \
-    --kronaplot \
-    > ${outfile_mimeo_log} 2> ${outfile_mimeo_err}
+    --kronaplot 
+
 EOF
 )
 echo $cmd
-eval $cmd
+$cmd > ${outfile_mimeo_log} 2> ${outfile_mimeo_err}
+exit_code=$?
+echo "ExitCode:$exit_code"
+if [ $exit_code -ne 0 ];then 
+    exit 1
+fi
 
-sleep 60
+sleep $sleep_duration
 
 # spacesavers2_grubbers
 echo "Running spacesavers2_grubbers..."
@@ -103,17 +118,23 @@ for filegz in `ls ${OUTFOLDER}/${PREFIX}*files.gz`;do
     outfile=`echo $filegz|sed "s/mimeo.files.gz/grubbers.tsv/g"`
     logfile=`echo $filegz|sed "s/mimeo.files.gz/grubbers.log/g"`
     errfile=`echo $filegz|sed "s/mimeo.files.gz/grubbers.err/g"`
+    spacesavers2_grubbers --version
     cmd=$(
 cat << EOF
     spacesavers2_grubbers \
         --filesgz $filegz \
         --limit $LIMIT \
-        --outfile $outfile \
-        > $logfile 2> $errfile
+        --outfile $outfile 
 EOF
 )
     echo $cmd
-    eval $cmd
+$cmd > $logfile 2> $errfile
+exit_code=$?
+echo "ExitCode:$exit_code"
+if [ $exit_code -ne 0 ];then 
+    exit 1
+fi
+
 done
 
 
