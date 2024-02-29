@@ -16,6 +16,7 @@ from multiprocessing import Pool
 import argparse
 from pathlib import Path
 import json
+import os
 
 
 def task(f):
@@ -23,6 +24,12 @@ def task(f):
     fd.set(f)
     return fd
 
+def process(fd):
+    # requires global bigdict
+    uid = fd.get_uid()
+    if not uid in bigdict: bigdict[uid]=dict()
+    inode = fd.get_inode()
+    if not inode in bigdict[uid]: bigdict[uid][inode]=fd.get_size()
 
 def main():
     elog = textwrap.dedent(
@@ -73,6 +80,14 @@ def main():
         type=str,
         help="outfile file in JSON format.",
     )
+    parser.add_argument(
+        "-q",
+        "--quite",
+        dest="quite",
+        required=False,
+        action=argparse.BooleanOptionalAction,
+        help="Do not show progress",
+    )
     parser.add_argument("-v", "--version", action="version", version=__version__)
 
     global args
@@ -80,9 +95,15 @@ def main():
 
     folder = args.folder
     p = Path(folder).absolute()
-    files = [p]
-    files2 = p.glob("**/*")
-    files.extend(files2)
+
+    global dirs
+    dirs = list()
+
+    tqdm_disable = False
+    if args.quite: tqdm_disable = True
+    # files = [p]
+    # files2 = p.glob("**/*")
+    # files.extend(files2)
 
     if args.outfile:
         outfh = open(args.outfile, 'w')
@@ -92,16 +113,20 @@ def main():
     if args.json:
         outjson = open(args.json, 'w')
 
+    global bigdict
     bigdict=dict()
 
     with Pool(processes=args.threads) as pool:
-        for fd in tqdm.tqdm(pool.imap_unordered(task, files),total=len(files)):
+        for fd in tqdm.tqdm(pool.imap_unordered(task, scantree(p)),disable=tqdm_disable):
             if not fd.is_fld(): continue # its either a file or link or directory
-            uid = fd.get_uid()
-            if not uid in bigdict: bigdict[uid]=dict()
-            inode = fd.get_inode()
-            if not inode in bigdict[uid]: bigdict[uid][inode]=fd.get_size()
+            process(fd)
 
+    # now loop through dirs
+    with Pool(processes=args.threads) as pool:
+        for fd in tqdm.tqdm(pool.imap_unordered(task, dirs),disable=tqdm_disable):
+            if not fd.is_fld(): continue # its either a file or link or directory
+            process(fd)
+            
     outdict=dict()
     outdict[str(p)]=dict()
 
