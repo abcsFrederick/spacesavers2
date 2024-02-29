@@ -132,6 +132,14 @@ def main():
         help="output per-user geezer files list.",
     )
     parser.add_argument(
+        "-q",
+        "--quite",
+        dest="quite",
+        required=False,
+        action=argparse.BooleanOptionalAction,
+        help="Do not show progress",
+    )
+    parser.add_argument(
         "-a",
         "--geezerage",
         dest="geezerage",
@@ -154,16 +162,16 @@ def main():
     global args
     args = parser.parse_args()
 
+    tqdm_disable = False
+    if args.quite: tqdm_disable = True
+    
     global sed
     sed = dict()
     for s in args.se.split(","):
         sed[s] = 1
 
     folder = args.folder
-    p = Path(folder)
-    files = [p]
-    files2 = p.glob("**/*")
-    files.extend(files2)
+    p = Path(folder).absolute()
 
     broken_links = dict()
     geezers = dict()
@@ -174,7 +182,7 @@ def main():
         outfh = sys.stdout
 
     with Pool(processes=args.threads) as pool:
-        for fd in tqdm.tqdm(pool.imap_unordered(task, files),total=len(files)):
+        for fd in tqdm.tqdm(pool.imap_unordered(task, scantree(p)),disable=tqdm_disable):
             uid = fd.get_userid()
             if fd.get_type() == "L": # broken link
                 if not uid in broken_links: broken_links[uid] = list()

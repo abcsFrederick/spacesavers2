@@ -5,6 +5,18 @@ import subprocess
 import sys
 import time
 
+def scantree(path):
+    # requires global dirs
+    """Recursively yield DirEntry objects for given directory."""
+    for entry in os.scandir(path):
+        try:
+            if entry.is_dir(follow_symlinks=False):
+                dirs.append(entry.path)
+                yield from scantree(entry.path)
+            else:
+                yield entry.path
+        except:
+            return
 
 def which(program):
     def is_exe(fpath):
