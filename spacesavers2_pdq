@@ -95,9 +95,7 @@ def main():
 
     folder = args.folder
     p = Path(folder).absolute()
-
-    global dirs
-    dirs = list()
+    dirs = [p]
 
     tqdm_disable = False
     if args.quite: tqdm_disable = True
@@ -117,7 +115,7 @@ def main():
     bigdict=dict()
 
     with Pool(processes=args.threads) as pool:
-        for fd in tqdm.tqdm(pool.imap_unordered(task, scantree(p)),disable=tqdm_disable):
+        for fd in tqdm.tqdm(pool.imap_unordered(task, scantree(p,dirs)),disable=tqdm_disable):
             if not fd.is_fld(): continue # its either a file or link or directory
             process(fd)
 
