@@ -59,11 +59,12 @@ spacesavers2_catalog \
     --outfile ${outfile_catalog} \
     --bottomhash \
     --brokenlink \
-    --geezers --quite
+    --geezers \
+    --quiet
 EOF
 )
 echo $cmd
-$cmd > ${outfile_catalog_log} 2> ${outfile_catalog_err}
+#$cmd > ${outfile_catalog_log} 2> ${outfile_catalog_err}
 exit_code=$?
 echo "ExitCode:$exit_code"
 if [ $exit_code -ne 0 ];then 

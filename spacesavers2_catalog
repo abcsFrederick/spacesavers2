@@ -154,8 +154,8 @@ def main():
     )
     parser.add_argument(
         "-q",
-        "--quite",
-        dest="quite",
+        "--quiet",
+        dest="quiet",
         required=False,
         action=argparse.BooleanOptionalAction,
         help="Do not show progress",
@@ -184,7 +184,7 @@ def main():
     args = parser.parse_args()
 
     tqdm_disable = False
-    if args.quite: tqdm_disable = True
+    if args.quiet: tqdm_disable = True
     
     global sed
     sed = dict()
