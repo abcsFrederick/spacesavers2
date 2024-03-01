@@ -18,6 +18,7 @@ from pathlib import Path
 
 def task(f):
     fd = FileDetails()
+    # print(f"Initiating {f}")
     fd.initialize(
         f,
         buffersize=args.buffersize,
@@ -27,8 +28,28 @@ def task(f):
         bottomhash=args.bottomhash,
         st_block_byte_size=args.st_block_byte_size,
     )
+    # print(f"Returning {f}")
     return fd
 
+def process(fd,broken_links,outfh,geezerage,geezersize,geezers):
+    uid = fd.get_userid()
+    if fd.get_type() == "L": # broken link
+        if not uid in broken_links: broken_links[uid] = list()
+        broken_links[uid].append(fd.get_filepath())
+    else:
+        result = "%s" % (fd)
+        if not result == "":
+            outfh.write(f"{result}\n")
+            if fd.get_type() == "f":
+                age = fd.get_age()
+                size = fd.get_size()
+                if age > geezerage and size > geezersize:
+                    x = list()
+                    x.append("{0:.2f} yrs".format(age/365))
+                    x.append(fd.get_size_human_readable())
+                    x.append(fd.get_filepath())
+                    if not uid in geezers: geezers[uid] = list()
+                    geezers[uid].append("\t".join(x))
 
 def main():
     elog = textwrap.dedent(
@@ -132,6 +153,14 @@ def main():
         help="output per-user geezer files list.",
     )
     parser.add_argument(
+        "-q",
+        "--quite",
+        dest="quite",
+        required=False,
+        action=argparse.BooleanOptionalAction,
+        help="Do not show progress",
+    )
+    parser.add_argument(
         "-a",
         "--geezerage",
         dest="geezerage",
@@ -154,16 +183,17 @@ def main():
     global args
     args = parser.parse_args()
 
+    tqdm_disable = False
+    if args.quite: tqdm_disable = True
+    
     global sed
     sed = dict()
     for s in args.se.split(","):
         sed[s] = 1
 
     folder = args.folder
-    p = Path(folder)
-    files = [p]
-    files2 = p.glob("**/*")
-    files.extend(files2)
+    p = Path(folder).absolute()
+    dirs = [p]
 
     broken_links = dict()
     geezers = dict()
@@ -174,25 +204,12 @@ def main():
         outfh = sys.stdout
 
     with Pool(processes=args.threads) as pool:
-        for fd in tqdm.tqdm(pool.imap_unordered(task, files),total=len(files)):
-            uid = fd.get_userid()
-            if fd.get_type() == "L": # broken link
-                if not uid in broken_links: broken_links[uid] = list()
-                broken_links[uid].append(fd.get_filepath())
-            else:
-                result = "%s" % (fd)
-                if not result == "":
-                    outfh.write(f"{result}\n")
-                    if fd.get_type() == "f":
-                        age = fd.get_age()
-                        size = fd.get_size()
-                        if age > args.geezerage and size > args.geezersize:
-                            x = list()
-                            x.append("{0:.2f} yrs".format(age/365))
-                            x.append(fd.get_size_human_readable())
-                            x.append(fd.get_filepath())
-                            if not uid in geezers: geezers[uid] = list()
-                            geezers[uid].append("\t".join(x))
+        for fd in tqdm.tqdm(pool.imap_unordered(task, scantree(p,dirs)),disable=tqdm_disable):
+            process(fd,broken_links,outfh,args.geezerage,args.geezersize,geezers)
+
+    with Pool(processes=args.threads) as pool:
+        for fd in tqdm.tqdm(pool.imap_unordered(task, dirs),disable=tqdm_disable):
+            process(fd,broken_links,outfh,args.geezerage,args.geezersize,geezers)
 
     if args.outfile:
         outfh.close()

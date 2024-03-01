@@ -4,6 +4,20 @@
 
 ### Bug fixes
 
+## spacesavers2 v0.12.0
+
+### New features
+
+- `spacesavers2_pdq` is now counting inodes (not files) and including links and directories (#95, @kopardev)
+- "pathlib.glob" is replaced with "os.scandir" for speedy folder traversing
+- `--quite` option added to `spacesavers2_pdq` and `spacesavers2_catalog` to suppress progress bar output when running non-interactively eg. as a cronjob. This reduces size of .err file.
+
+### Bug fixes
+
+- `spacesavers2_pdq` not does NOT ignore links and folders (#93, @kopardev)
+- `redirect` correctly captures intermediate non-zero exit codes
+- "eval" statements removed from `spacesavers2_e2e` to accurately capture non-zero exit codes; makes sure e2d fails if catalog fails internally
+
 ## spacesavers2 0.11.6
 
 ### New features

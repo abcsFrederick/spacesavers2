@@ -54,8 +54,10 @@ class pdq:
         return self.uid
     def get_fld(self):
         return self.fld
-    def is_file(self):
+    def is_fld(self):
         if self.fld == "f": return True
+        if self.fld == "l": return True
+        if self.fld == "d": return True
         return False
     def get_inode(self):
         return self.inode

@@ -16,6 +16,7 @@ from multiprocessing import Pool
 import argparse
 from pathlib import Path
 import json
+import os
 
 
 def task(f):
@@ -23,6 +24,12 @@ def task(f):
     fd.set(f)
     return fd
 
+def process(fd):
+    # requires global bigdict
+    uid = fd.get_uid()
+    if not uid in bigdict: bigdict[uid]=dict()
+    inode = fd.get_inode()
+    if not inode in bigdict[uid]: bigdict[uid][inode]=fd.get_size()
 
 def main():
     elog = textwrap.dedent(
@@ -73,6 +80,14 @@ def main():
         type=str,
         help="outfile file in JSON format.",
     )
+    parser.add_argument(
+        "-q",
+        "--quite",
+        dest="quite",
+        required=False,
+        action=argparse.BooleanOptionalAction,
+        help="Do not show progress",
+    )
     parser.add_argument("-v", "--version", action="version", version=__version__)
 
     global args
@@ -80,9 +95,13 @@ def main():
 
     folder = args.folder
     p = Path(folder).absolute()
-    files = [p]
-    files2 = p.glob("**/*")
-    files.extend(files2)
+    dirs = [p]
+
+    tqdm_disable = False
+    if args.quite: tqdm_disable = True
+    # files = [p]
+    # files2 = p.glob("**/*")
+    # files.extend(files2)
 
     if args.outfile:
         outfh = open(args.outfile, 'w')
@@ -92,30 +111,34 @@ def main():
     if args.json:
         outjson = open(args.json, 'w')
 
+    global bigdict
     bigdict=dict()
 
     with Pool(processes=args.threads) as pool:
-        for fd in tqdm.tqdm(pool.imap_unordered(task, files),total=len(files)):
-            if not fd.is_file(): continue
-            uid = fd.get_uid()
-            if not uid in bigdict: bigdict[uid]=dict()
-            inode = fd.get_inode()
-            if not inode in bigdict[uid]: bigdict[uid][inode]=fd.get_size()
+        for fd in tqdm.tqdm(pool.imap_unordered(task, scantree(p,dirs)),disable=tqdm_disable):
+            if not fd.is_fld(): continue # its either a file or link or directory
+            process(fd)
 
+    # now loop through dirs
+    with Pool(processes=args.threads) as pool:
+        for fd in tqdm.tqdm(pool.imap_unordered(task, dirs),disable=tqdm_disable):
+            if not fd.is_fld(): continue # its either a file or link or directory
+            process(fd)
+            
     outdict=dict()
     outdict[str(p)]=dict()
 
     for uid in bigdict.keys():
         username = get_username_groupname(uid)
         outdict[str(p)][str(uid)]=dict()
-        nfiles = len(bigdict[uid])
+        ninodes = len(bigdict[uid])
         nbytes = 0
         for inode in bigdict[uid].keys():
             nbytes += bigdict[uid][inode]
         outdict[str(p)][str(uid)]['username']=username
-        outdict[str(p)][str(uid)]['nfiles']=nfiles
+        outdict[str(p)][str(uid)]['ninodes']=ninodes
         outdict[str(p)][str(uid)]['nbytes']=nbytes
-        outfh.write(f"{username}\t{nfiles}\t{nbytes}\n")
+        outfh.write(f"{username}\t{ninodes}\t{nbytes}\n")
     
     if args.json:
         json.dump(outdict,outjson,indent=1)

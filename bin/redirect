@@ -52,6 +52,6 @@ else
 fi
 
 if [[ "$run" == "0" ]]; then
-	${TOOLDIR}/${TOOLNAME} "$@" || true
+	${TOOLDIR}/${TOOLNAME} "$@" || exit 1
 	conda deactivate 2>/dev/null
 fi
