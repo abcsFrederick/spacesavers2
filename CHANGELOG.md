@@ -4,6 +4,8 @@
 
 ### Bug fixes
 
+- type fix "quite" to "quiet"
+
 ## spacesavers2 v0.12.0
 
 ### New features
