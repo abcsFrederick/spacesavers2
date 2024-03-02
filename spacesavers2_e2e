@@ -59,7 +59,8 @@ spacesavers2_catalog \
     --outfile ${outfile_catalog} \
     --bottomhash \
     --brokenlink \
-    --geezers --quite
+    --geezers \
+    --quiet
 EOF
 )
 echo $cmd

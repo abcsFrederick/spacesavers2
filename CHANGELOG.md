@@ -4,6 +4,16 @@
 
 ### Bug fixes
 
+## spacesavers2 v0.12.1
+
+### New features
+
+- adding uid, human_readable_bytes and percent columns to `pdq` output 
+
+### Bug fixes
+
+- type fix "quite" to "quiet"
+
 ## spacesavers2 v0.12.0
 
 ### New features

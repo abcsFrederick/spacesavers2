@@ -16,7 +16,7 @@ from multiprocessing import Pool
 import argparse
 from pathlib import Path
 import json
-import os
+import pandas as pd
 
 
 def task(f):
@@ -82,8 +82,8 @@ def main():
     )
     parser.add_argument(
         "-q",
-        "--quite",
-        dest="quite",
+        "--quiet",
+        dest="quiet",
         required=False,
         action=argparse.BooleanOptionalAction,
         help="Do not show progress",
@@ -98,7 +98,7 @@ def main():
     dirs = [p]
 
     tqdm_disable = False
-    if args.quite: tqdm_disable = True
+    if args.quiet: tqdm_disable = True
     # files = [p]
     # files2 = p.glob("**/*")
     # files.extend(files2)
@@ -127,6 +127,8 @@ def main():
             
     outdict=dict()
     outdict[str(p)]=dict()
+    col_names =  ['uid', 'username', 'ninodes', 'nbytes', 'human_readable']
+    df  = pd.DataFrame(columns = col_names)
 
     for uid in bigdict.keys():
         username = get_username_groupname(uid)
@@ -138,8 +140,27 @@ def main():
         outdict[str(p)][str(uid)]['username']=username
         outdict[str(p)][str(uid)]['ninodes']=ninodes
         outdict[str(p)][str(uid)]['nbytes']=nbytes
-        outfh.write(f"{username}\t{ninodes}\t{nbytes}\n")
-    
+        my_dict = {'uid':uid,
+                   'username':username,
+                   'ninodes':ninodes,
+                   'nbytes':nbytes,
+                   'human_readable':get_human_readable_size(nbytes)}
+        df.loc[len(df)] = my_dict
+        # outfh.write(f"{username}\t{ninodes}\t{nbytes}\n")
+
+    total_ninodes = df['ninodes'].sum()    
+    total_nbytes = df['nbytes'].sum()
+    total_humanreadable = get_human_readable_size(total_nbytes)
+    my_dict = { 'uid':0,
+                'username':'allusers',
+                'ninodes':total_ninodes ,
+                'nbytes':total_nbytes,
+                'human_readable':total_humanreadable}
+    df.loc[len(df)] = my_dict
+    df.sort_values(by=['nbytes'],ascending=False,inplace=True)
+    df['percent'] = df['nbytes'] * 100.0 / total_nbytes
+    df['percent'] = df['percent'].apply(lambda x: float("{:.2f}".format(x)))
+    df.to_csv(outfh,sep="\t",index=False)    
     if args.json:
         json.dump(outdict,outjson,indent=1)
         outjson.close()
