@@ -79,19 +79,28 @@ def main():
 
     # Create the "dates" table
     cursor.execute('''CREATE TABLE IF NOT EXISTS dates (
-                        date_epoch INTEGER PRIMARY KEY,
-                        date_text TEXT NOT NULL
+                        date_int INTEGER PRIMARY KEY,
+                        date_text TEXT UNIQUE NOT NULL
                     )''')
+    
+    # Create datamounts table
+    cursor.execute('''CREATE TABLE IF NOT EXISTS datamounts (
+                        datamount_id INTEGER PRIMARY KEY,
+                        datamount_name TEXT UNIQUE NOT NULL
+                    )''')
+
 
     # Create the "orders" table with a foreign key constraint
     cursor.execute('''CREATE TABLE IF NOT EXISTS datapoints (
-                        datapoint_it INTEGER PRIMARY KEY,
-                        date_epoch INTEGER,
+                        datapoint_id INTEGER PRIMARY KEY,
+                        date_int INTEGER,
+                        datamount_id INTEGER,
                         user_id INTEGER,
                         ninodes INTEGER,
                         nbytes INTEGER,
                         FOREIGN KEY (user_id) REFERENCES users(user_id),
-                        FOREIGN KEY (date_epoch) REFERENCES dates(date_epoch)
+                        FOREIGN KEY (datamount_id) REFERENCES datamounts(datamount_id),
+                        FOREIGN KEY (date_int) REFERENCES dates(date_int)
                     )''')
 
     # Commit changes and close the connection
