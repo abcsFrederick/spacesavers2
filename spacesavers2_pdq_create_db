@@ -10,10 +10,8 @@ version_check()
 # import required modules
 import sqlite3
 import textwrap
-import sys
 import argparse
 from pathlib import Path
-import pandas as pd
 
 def main():
     elog = textwrap.dedent(
