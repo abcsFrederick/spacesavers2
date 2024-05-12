@@ -104,3 +104,6 @@ nav:
       - grubbers: grubbers.md
       - usurp: usurp.md
       - e2e: e2e.md
+      - pdq: pdq.md
+      - pdq_create_db: pdq_create_db.md
+      - pdq_update_db: pdq_update_db.md
