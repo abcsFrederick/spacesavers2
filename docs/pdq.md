@@ -85,4 +85,4 @@ Here is an example output:
 `spacesavers2_pdq` creates TSV (or JSON) file per-datamount per-run (typically per-date). If run daily, this soon creates a lot of files to keep track of. Hence, it is best to save the data in a sqlite db using:
 
  - [`spacesavers2_pdq_create_db`](pdq_create_db.md) and
- - [`spacesavers2_pdq_update_db`](pdb_update_db.md)
+ - [`spacesavers2_pdq_update_db`](pdq_update_db.md)
