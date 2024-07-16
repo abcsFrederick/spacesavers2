@@ -29,6 +29,7 @@ Welcome! `spacesavers2`:
 - spacesavers2_grubbers
 - spacesavers2_e2e
 - spacesavers2_usurp
+- spacesavers2_pdq
 
 ## `spacesavers2` typical workflow looks like this:
 

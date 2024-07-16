@@ -22,12 +22,17 @@ For each file it also computes a unique hash (using xxHash library) for:
  - `--se`: Comma-separated special extensions for home `spacesavers2` ignores the headers before extracting the top chunk for xxHash calculation. The default is "bam,bai,bigwig,bw,csi".
  - `--bottomhash`: Default False. Use the bottom chunk along with the top chunk of the file for xxHash calculation.
  - `--outfile`: If not supplied then the optput is written to the screen.
+ - `--brokenlink`: Default False. Create a file listing broken symlinks per-user.
+ - `--geezer`: Default False. Create a file listing really old files per-user. Output files have 3 columns: age, size, path
+   - `--geezerage`: Default 5 * 365. age in days to be considered a geezer file.
+   - `--geezersize`: Default 10 MiB. minimum size in bytes of geezer file to be reported.
 
 > NOTE: `spacesavers2_catalog` reports errors (eg. cannot read file) to STDERR
 
 ```bash
- % spacesavers2_catalog --help
-usage: spacesavers2_catalog [-h] -f FOLDER [-p THREADS] [-b BUFFERSIZE] [-i IGNOREHEADERSIZE] [-s SE] [-o OUTFILE] [-e | --bottomhash | --no-bottomhash]
+usage: spacesavers2_catalog [-h] -f FOLDER [-p THREADS] [-b BUFFERSIZE] [-i IGNOREHEADERSIZE] [-x SE] [-s ST_BLOCK_BYTE_SIZE] [-o OUTFILE]
+                            [-e | --bottomhash | --no-bottomhash] [-l | --brokenlink | --no-brokenlink] [-g | --geezers | --no-geezers]
+                            [-a GEEZERAGE] [-z GEEZERSIZE] [-v]
 
 spacesavers2_catalog: get per file info.
 
@@ -36,24 +41,38 @@ options:
   -f FOLDER, --folder FOLDER
                         spacesavers2_catalog will be run on all files in this folder and its subfolders
   -p THREADS, --threads THREADS
-                        number of threads to be used
+                        number of threads to be used (default 4)
   -b BUFFERSIZE, --buffersize BUFFERSIZE
-                        buffersize for xhash creation
+                        buffersize for xhash creation (default=128 * 1028 bytes)
   -i IGNOREHEADERSIZE, --ignoreheadersize IGNOREHEADERSIZE
-                        this sized header of the file is ignored before extracting buffer of buffersize for xhash creation (only for special extension files)
-  -s SE, --se SE        comma separated list of special extentions
+                        this sized header of the file is ignored before extracting buffer of buffersize for xhash creation (only for special
+                        extensions files) default = 1024 * 1024 * 1024 bytes
+  -x SE, --se SE        comma separated list of special extensions (default=bam,bai,bigwig,bw,csi)
+  -s ST_BLOCK_BYTE_SIZE, --st_block_byte_size ST_BLOCK_BYTE_SIZE
+                        st_block_byte_size on current filesystem (default 512)
   -o OUTFILE, --outfile OUTFILE
                         outfile ... catalog file .. by default output is printed to screen
   -e, --bottomhash, --no-bottomhash
                         separately calculated second hash for the bottom/end of the file.
+  -l, --brokenlink, --no-brokenlink
+                        output per-user broken links list.
+  -g, --geezers, --no-geezers
+                        output per-user geezer files list.
+  -a GEEZERAGE, --geezerage GEEZERAGE
+                        age in days to be considered a geezer file (default 5yrs ... 5 * 365).
+  -z GEEZERSIZE, --geezersize GEEZERSIZE
+                        minimum size in bytes of geezer file to be reported (default 10MiB ... 10 * 1024 * 1024).
+  -v, --version         show program's version number and exit
 
 Version:
-    v0.5
+    v0.11.4
 Example:
-    > spacesavers2_catalog -f /path/to/folder -p 56 -e
+    > spacesavers2_catalog -f /path/to/folder -p 56 -e -l -g
 ```
 
 ### Output
+
+## catalog file
 
 `spacesavers2_catalog` creates one semi-colon seperated output line per input file. Here is an example line:
 
@@ -81,3 +100,17 @@ The 13 items in the line are as follows:
 | 13     | bottom chunk xxHash      | 52e5038016c3dce5b6cdab635765cc79                                                               |
 
 > NOTE: Some files may have ";" or spaces in their name, hence adding quotes around the absolute file path.
+
+## broken links file
+
+  - simply lists the paths which are symbolic links, but the destination files do not exist anymore!
+  - one file per username.
+
+> DISCLAIMER:
+>  - may contain false-positives if the user running `spacesavers2_catalog` does not have read access to the symlinks destination
+
+## geezer file
+
+  - lists really old files (default > 5 years).
+  - list has 3 columns: age, size and path.
+  - one file per username.

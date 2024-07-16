@@ -80,12 +80,12 @@ def main():
             properly_set = dfu.set(l)
             if not properly_set: # could not read line properly or there are no duplicates
                 continue
-            if dfu.ndup == 0: continue # in case mimeo was run without -z
+            if dfu.ndup_uid_inode == 0: continue # in case mimeo was run without -z
             dups.append(dfu)
 
     dups.sort() # look at __lt__ ... its sorting from highest to lowest totalsize
     saved = 0
-    top_limit = args.limit * 1024 * 1024 * 1024  # 5 GiB
+    top_limit = args.limit * 1024 * 1024 * 1024  # 5 GiB Default
     if args.outfile:
         of = open(args.outfile, "w")
     else:
@@ -95,6 +95,8 @@ def main():
         if fgitem.totalsize <= top_limit:
             break
         saved += fgitem.totalsize
+        outstr = str(fgitem)
+        if outstr == "": continue
         of.write("%s\n"%(fgitem))
 
     if args.outfile:
