@@ -1,14 +1,9 @@
 ## spacesavers2 development version
 
-### New features
-
-### Bug fixes
 
 ## spacesavers2 v0.14.0
 
-- resolved #102
-
-### New features
+- Fix accuracy of bytes calculation when hard links exist. (@kopardev, #106)
 
 ## spacesavers2 v0.13.0
 
