@@ -13,8 +13,6 @@
 - output TSV files from `spacesavers2_pdq` can be saved into a sqlite3 db with these commands
 - future integration with Grafana will now be possible
 
-### Bug fixes
-
 ## spacesavers2 v0.12.1
 
 ### New features
