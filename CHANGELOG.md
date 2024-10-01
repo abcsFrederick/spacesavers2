@@ -1,9 +1,10 @@
 ## spacesavers2 development version
 
+- Add multiple versions for docs website. (#109, @kelly-sovacool)
 
 ## spacesavers2 v0.14.0
 
-- Fix accuracy of bytes calculation when hard links exist. (@kopardev, #106)
+- Fix accuracy of bytes calculation when hard links exist. (#106, @kopardev)
 
 ## spacesavers2 v0.13.0
 
@@ -17,7 +18,7 @@
 
 ### New features
 
-- adding uid, human_readable_bytes and percent columns to `pdq` output 
+- adding uid, human_readable_bytes and percent columns to `pdq` output
 
 ### Bug fixes
 
