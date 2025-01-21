@@ -1,5 +1,8 @@
 # :rocket: spacesavers2 :rocket:
 
+[![docs](https://github.com/CCBR/spacesavers2/actions/workflows/docs-mkdocs.yml/badge.svg)](https://ccbr.github.io/spacesavers2)
+[![release](https://img.shields.io/github/v/release/CCBR/spacesavers2?color=blue&label=latest%20release)](https://github.com/ccbr/spacesavers2/releases/latest)
+
 ## Table of Contents:
 
 - [Background](#background)
