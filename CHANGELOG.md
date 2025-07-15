@@ -1,5 +1,7 @@
 ## spacesavers2 development version
 
+## spacesavers2 0.14.1
+
 - Add multiple versions for docs website. (#109, @kelly-sovacool)
 - Now using the readthedocs theme for the docs website. (#117, @kelly-sovacool)
 - Fix path to the shared conda environment on biowulf. (#120, @kelly-sovacool)
