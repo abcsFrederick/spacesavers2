@@ -1,5 +1,9 @@
 ## spacesavers2 development version
 
+## spacesavers2 0.14.2
+
+- Add `spacesavers --help` command to list available subcommands. (#125, @kelly-sovacool)
+
 ## spacesavers2 0.14.1
 
 - Add multiple versions for docs website. (#109, @kelly-sovacool)
